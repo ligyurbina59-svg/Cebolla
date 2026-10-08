@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050810">
+<title>HOLOCHRON</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#050810;font-family:system-ui,-apple-system,sans-serif;color:#c8d8f0}
+canvas{display:block;width:100%;height:100%}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 20%,#0e1830 0%,#050810 55%);z-index:10;padding:14px;overflow-y:auto}
+.screen.active{display:flex}
+.holo{
+  width:64px;height:64px;border-radius:16px;margin-bottom:14px;
+  background:linear-gradient(145deg,rgba(60,120,255,.25),rgba(20,40,80,.5));
+  border:1.5px solid rgba(120,180,255,.55);
+  box-shadow:0 0 32px rgba(80,140,255,.4),inset 0 0 20px rgba(100,160,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;letter-spacing:2px;color:#a0d0ff;
+  animation:pulse 3s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 28px rgba(80,140,255,.35)}50%{box-shadow:0 0 40px rgba(100,180,255,.55)}}
+h1{color:#90c8ff;font-size:clamp(22px,6vw,36px);letter-spacing:6px;text-align:center;margin-bottom:4px;text-shadow:0 0 40px rgba(80,160,255,.45)}
+h2{color:#6080b0;font-size:clamp(10px,2.6vw,13px);letter-spacing:3px;margin-bottom:12px;text-align:center}
+p{color:#506888;font-size:12px;text-align:center;max-width:94%;line-height:1.55;margin-bottom:5px}
+.btn{padding:12px 28px;margin:5px;background:rgba(30,50,90,.92);border:1px solid #5080c0;border-radius:10px;color:#b0d8ff;font-size:13px;font-weight:600;letter-spacing:1px;min-width:165px;cursor:pointer}
+.btn:active{background:rgba(50,80,140,.95);transform:scale(.98)}
+.btn.sec{background:rgba(15,25,45,.9);border-color:#305080;color:#7090b8}
+#hud{position:absolute;top:0;left:0;right:0;padding:8px 12px;display:none;justify-content:space-between;pointer-events:none;z-index:5;font-size:11px}
+#hud .bar{height:6px;width:95px;background:#0e1830;border-radius:3px;overflow:hidden;margin-top:2px}
+#hud .bar-fill{height:100%;border-radius:3px;background:#60a0ff}
+#msg{position:absolute;top:42%;width:100%;text-align:center;color:#a0d8ff;font-size:clamp(13px,3.4vw,18px);font-weight:700;opacity:0;transition:opacity .35s;text-shadow:0 0 16px #2060c0,0 2px 10px #000;pointer-events:none;z-index:6}
+#controls{position:absolute;bottom:12px;left:0;right:0;display:none;justify-content:center;gap:12px;z-index:5;pointer-events:auto}
+.ctrl{width:58px;height:58px;border-radius:50%;background:rgba(15,25,50,.94);border:1.5px solid #4060a0;color:#90b8e8;font-size:16px;display:flex;align-items:center;justify-content:center}
+.ctrl:active,.ctrl.on{border-color:#80c0ff;color:#e0f0ff;box-shadow:0 0 16px rgba(80,160,255,.4);transform:scale(.93)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px;width:100%;margin:10px 0}
+.card{background:rgba(20,35,65,.9);border:1.5px solid #305080;border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer}
+.card:active,.card.sel{border-color:#70b0ff;background:rgba(40,70,130,.45);box-shadow:0 0 16px rgba(60,120,255,.25)}
+.card .n{color:#90c8ff;font-weight:700;font-size:12px}
+.card .d{color:#506888;font-size:9px;margin-top:3px}
+.card.lock{opacity:.4;pointer-events:none}
+.tag{font-size:9px;color:#6080b0;letter-spacing:2px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="screen-title" class="screen active">
+  <div class="holo">HC</div>
+  <div class="tag">MN24 STUDIOS IA · INDIE · DIGITAL ARCHIVE</div>
+  <h1>HOLOCHRON</h1>
+  <h2>ARCHIVO HOLOCROMÁTICO</h2>
+  <p>No juegas una guerra.<br>Entras en la <b style="color:#90c8ff">proyección</b> de todas las que ya terminaron.<br>Trincheras · Nuclear · Ancestral · Olimpo · Señal final.</p>
+  <p style="color:#405878;font-size:10px;margin:10px 0 14px">Único · Independiente · Portfolio para contratos y talento</p>
+  <button class="btn" onclick="go('menu')">ACTIVAR ARCHIVO</button>
+</div>
+
+<div id="screen-menu" class="screen">
+  <div class="holo" style="width:48px;height:48px;font-size:10px;margin-bottom:8px">HC</div>
+  <h1 style="font-size:clamp(18px,4.5vw,26px);letter-spacing:4px">HOLOCHRON</h1>
+  <h2>Menú</h2>
+  <button class="btn" onclick="go('select')">NUEVA SESIÓN</button>
+  <button class="btn sec" onclick="go('lore')">QUÉ ES ESTO</button>
+  <button class="btn sec" onclick="go('how')">CÓMO JUGAR</button>
+  <button class="btn sec" onclick="go('pitch')">PARA EMPRESAS</button>
+  <button class="btn sec" onclick="go('credits')">CRÉDITOS</button>
+  <button class="btn sec" onclick="go('title')">VOLVER</button>
+</div>
+
+<div id="screen-lore" class="screen">
+  <h1>QUÉ ES ESTO</h1>
+  <p><b style="color:#90c8ff">HOLOCHRON</b> no es un campo de batalla real.</p>
+  <p>Es un <b>archivo holográfico</b>: cada “nivel” es una capa de memoria proyectada.</p>
+  <p>Trincheras de 1914 · Frentes ancestrales · Invierno nuclear · Ruinas del Olimpo · La última señal.</p>
+  <p style="margin-top:8px">Tú eres el operador que atraviesa las capas antes de que el archivo se apague.</p>
+  <p style="color:#6080b0;font-size:11px">Temática única: guerra como museo vivo de proyecciones, no como FPS genérico.</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-how" class="screen">
+  <h1>CÓMO JUGAR</h1>
+  <p><b style="color:#90c8ff">↑</b> Saltar &nbsp; <b style="color:#70a0d8">↓</b> Fase / cubrir</p>
+  <p><b style="color:#b0d8ff">⚔</b> Pulso holográfico</p>
+  <p><b>Integridad</b> del archivo se degrada. Recoge nodos de memoria.</p>
+  <p>Sobrevive a cada capa. Al final: la Señal.</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-pitch" class="screen">
+  <h1>PARA EMPRESAS</h1>
+  <h2>Contrato · Talento · Partnership</h2>
+  <p><b style="color:#90c8ff">Qué es:</b> demo jugable + identidad holocromática única</p>
+  <p><b style="color:#90c8ff">Por qué importa:</b> narrativa de archivo + gameplay claro + marca fuerte</p>
+  <p><b style="color:#90c8ff">Stack demo:</b> HTML5/Canvas · APK Android · Web multiplataforma</p>
+  <p><b style="color:#90c8ff">Roadmap:</b> Unity/Godot · audio · Play Store · posibles consoles vía partner</p>
+  <p><b style="color:#90c8ff">Buscamos:</b> publisher, lab, o equipo que valore prototipado IA + diseño</p>
+  <p style="color:#405878;font-size:10px;margin-top:8px">PlayStation / Nintendo: requieren SDK y acuerdo formal — este APK es la puerta de entrada.</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-select" class="screen">
+  <h1>CAPAS DEL ARCHIVO</h1>
+  <h2>Proyecciones activas</h2>
+  <div class="grid" id="stage-grid"></div>
+  <button class="btn" id="btnGo" onclick="startStage()" style="opacity:.4;pointer-events:none">ENTRAR</button>
+  <button class="btn sec" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-game" style="display:none">
+  <div id="hud">
+    <div>Integridad <div class="bar"><div class="bar-fill" id="will-bar" style="width:100%"></div></div></div>
+    <div style="text-align:right">
+      <div id="stage-name" style="color:#90c8ff;font-weight:700">—</div>
+      <div>Score <span id="score">0</span> · Nodos <span id="kills">0</span></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+  <div id="controls">
+    <div class="ctrl" id="btnD">↓</div>
+    <div class="ctrl" id="btnJ">↑</div>
+    <div class="ctrl" id="btnA">⚔</div>
+  </div>
+</div>
+
+<div id="screen-victory" class="screen">
+  <div class="holo" style="width:44px;height:44px;font-size:9px">HC</div>
+  <h1>CAPA ESTABLE</h1>
+  <h2 id="vic-title">—</h2>
+  <p id="vic-stats">—</p>
+  <button class="btn" onclick="nextStage()">SIGUIENTE CAPA</button>
+  <button class="btn sec" onclick="go('select')">CAPAS</button>
+  <button class="btn sec" onclick="go('menu')">MENÚ</button>
+</div>
+
+<div id="screen-gameover" class="screen">
+  <h1>ARCHIVO CORRUPTO</h1>
+  <h2>La proyección se desvaneció</h2>
+  <p id="go-stats">—</p>
+  <button class="btn" onclick="retryStage()">RECONECTAR</button>
+  <button class="btn sec" onclick="go('select')">CAPAS</button>
+  <button class="btn sec" onclick="go('menu')">MENÚ</button>
+</div>
+
+<div id="screen-credits" class="screen">
+  <div class="holo">HC</div>
+  <h1>CRÉDITOS</h1>
+  <p style="color:#90c8ff;margin-top:6px"><b>HOLOCHRON</b></p>
+  <p>Archivo holocromático · Indie único</p>
+  <p style="margin-top:10px"><b>MN24 STUDIOS IA</b> · Mythic Gate</p>
+  <p>From Earth · Remote · Digital</p>
+  <p style="color:#405878;margin-top:12px;font-size:10px">Android APK · Web (iOS/macOS) · Demo para difusión independiente</p>
+  <p style="color:#304868;font-size:9px">Play Store path · Console path vía partner · Contratos / talento</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<script>
+const STAGES=[
+  {id:0,name:'CAPA TRINCHERA',myth:'1914',desc:'Barro proyectado',goal:1600,color:'#8a9ab0',bg:'#0c1018',tag:'W1'},
+  {id:1,name:'CAPA ANCESTRAL',myth:'NACIONES',desc:'Memoria del suelo',goal:2100,color:'#80b090',bg:'#0a1210',tag:'ANC'},
+  {id:2,name:'CAPA NUCLEAR',myth:'CENIZA',desc:'Sol hecho archivo',goal:2700,color:'#70b0c0',bg:'#0a1214',tag:'NUC'},
+  {id:3,name:'CAPA OLIMPO',myth:'DIOSES',desc:'Panteón en eco',goal:3300,color:'#a090e0',bg:'#100e18',tag:'OLY'},
+  {id:4,name:'LA SEÑAL',myth:'FINAL',desc:'Último pulso',goal:4000,color:'#90c8ff',bg:'#080c18',tag:'SIG'}
+];
+let unlocked=[0],selected=-1,current=0;
+
+function go(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('hud').style.display='none';
+  document.getElementById('controls').style.display='none';
+  document.getElementById('screen-game').style.display='none';
+  if(n==='game'){document.getElementById('screen-game').style.display='block';document.getElementById('hud').style.display='flex';document.getElementById('controls').style.display='flex';return}
+  const el=document.getElementById('screen-'+n);if(el)el.classList.add('active');
+  if(n==='select')buildStages();
+}
+function buildStages(){
+  const g=document.getElementById('stage-grid');g.innerHTML='';
+  STAGES.forEach(s=>{
+    const lock=!unlocked.includes(s.id);
+    const c=document.createElement('div');
+    c.className='card'+(selected===s.id?' sel':'')+(lock?' lock':'');
+    c.innerHTML=`<div class="n">${lock?'🔒 ':''}${s.name}</div><div class="d">${s.myth}<br>${s.desc}</div>`;
+    if(!lock)c.onclick=()=>{selected=s.id;document.querySelectorAll('.card').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const b=document.getElementById('btnGo');b.style.opacity=1;b.style.pointerEvents='auto'};
+    g.appendChild(c);
+  });
+}
+function startStage(){if(selected<0)return;current=selected;initGame();go('game')}
+function nextStage(){if(current<STAGES.length-1){if(!unlocked.includes(current+1))unlocked.push(current+1);selected=current+1;current=selected;initGame();go('game')}else go('credits')}
+function retryStage(){initGame();go('game')}
+
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,S,gY;
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);S=Math.min(W/900,H/500);gY=H/S-70}
+addEventListener('resize',resize);resize();
+
+const G={phase:'idle',score:0,kills:0,will:100,time:0,speed:5.1,dist:0,shake:0,msgT:0};
+const P={x:115,y:0,vy:0,w:28,h:40,onGround:true,sliding:false,slideT:0,atk:false,atkT:0,inv:0};
+let obs=[],en=[],pt=[],orbs=[],bolts=[],fall=[];
+
+function showMsg(t,d=1.4){G.msgT=d;const el=document.getElementById('msg');el.textContent=t;el.style.opacity=1}
+function spawnP(x,y,col,n=8,sp=2.8){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2;pt.push({x,y,vx:Math.cos(a)*sp*(.4+Math.random()),vy:Math.sin(a)*sp*(.4+Math.random())-1.2,life:.4+Math.random()*.4,col,sz:1.5+Math.random()*2.8})}}
+
+const btn={j:0,d:0,a:0};
+function bind(id,k){const el=document.getElementById(id);if(!el)return;const dn=e=>{e.preventDefault();btn[k]=1;el.classList.add('on')};const up=()=>{btn[k]=0;el.classList.remove('on')};el.addEventListener('touchstart',dn,{passive:false});el.addEventListener('touchend',up);el.addEventListener('mousedown',dn);el.addEventListener('mouseup',up)}
+bind('btnJ','j');bind('btnD','d');bind('btnA','a');
+const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=1);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+
+function initGame(){
+  G.phase='play';G.score=0;G.kills=0;G.will=100;G.time=0;G.speed=5.1;G.dist=0;
+  P.y=0;P.vy=0;P.onGround=true;P.sliding=false;P.atk=false;P.inv=0;
+  obs=[];en=[];pt=[];orbs=[];bolts=[];
+  fall=[];for(let i=0;i<40;i++)fall.push({x:Math.random()*W/S,y:Math.random()*gY,vy:8+Math.random()*25,vx:(Math.random()-.5)*8,sz:1+Math.random()*2,a:Math.random()});
+  document.getElementById('stage-name').textContent=STAGES[current].tag+' · '+STAGES[current].name;
+  showMsg(STAGES[current].myth,1.7);
+  updateHUD();
+}
+function updateHUD(){
+  document.getElementById('score').textContent=Math.floor(G.score);
+  document.getElementById('kills').textContent=G.kills;
+  document.getElementById('will-bar').style.width=Math.max(0,G.will)+'%';
+  document.getElementById('will-bar').style.background=STAGES[current].color;
+}
+function victory(){
+  G.phase='victory';
+  if(!unlocked.includes(current+1)&&current<STAGES.length-1)unlocked.push(current+1);
+  document.getElementById('vic-title').textContent=STAGES[current].name;
+  document.getElementById('vic-stats').textContent='Score: '+Math.floor(G.score)+' · Nodos: '+G.kills;
+  setTimeout(()=>go('victory'),900);
+}
+function gameOver(){
+  G.phase='dead';
+  document.getElementById('go-stats').textContent='Score: '+Math.floor(G.score)+' · Nodos: '+G.kills;
+  setTimeout(()=>go('gameover'),700);
+}
+
+function update(dt){
+  if(G.phase!=='play')return;
+  G.time+=dt;
+  if(G.msgT>0){G.msgT-=dt;if(G.msgT<=0)document.getElementById('msg').style.opacity=0}
+  if(G.shake>0)G.shake-=dt;
+  const st=STAGES[current];
+  G.speed=5.1+Math.min(7.2,G.time*0.11)+current*0.35;
+  G.dist+=G.speed*60*dt;
+  G.score+=G.speed*5*dt;
+  G.will=Math.max(0,G.will-(1.85+current*0.28)*dt);
+  if(G.will<=0){gameOver();return}
+  if(G.dist>=st.goal){victory();return}
+
+  const jump=btn.j||keys[' ']||keys['arrowup']||keys['w'];
+  const slide=btn.d||keys['arrowdown']||keys['s'];
+  const atk=btn.a||keys['x']||keys['j'];
+  if(jump&&P.onGround&&!P.sliding){P.vy=-785;P.onGround=false}
+  if(slide&&P.onGround){P.sliding=true;P.slideT=0.4}
+  if(atk&&!P.atk){P.atk=true;P.atkT=0.27;bolts.push({x:P.x+30,y:P.y-10,life:0.26,hit:false})}
+
+  P.vy+=2160*dt;P.y+=P.vy*dt;
+  if(P.y>=0){P.y=0;P.vy=0;P.onGround=true}else P.onGround=false;
+  if(P.sliding){P.slideT-=dt;if(P.slideT<=0)P.sliding=false}
+  if(P.atk){P.atkT-=dt;if(P.atkT<=0)P.atk=false}
+  if(P.inv>0)P.inv-=dt;
+
+  if(Math.random()<0.027+G.time*0.0004+current*0.0035){
+    const t=Math.random();
+    if(t<0.32)obs.push({x:W/S+45,y:0,w:34,h:26,type:'rubble'});
+    else if(t<0.55)obs.push({x:W/S+45,y:14,w:42,h:40,type:'wall'});
+    else if(t<0.9)en.push({x:W/S+50,y:0,w:26,h:34,hp:1,type:Math.random()<0.45?'echo':'glitch',bob:Math.random()*5});
+    else orbs.push({x:W/S+40,y:-42-Math.random()*38,r:9,taken:false});
+  }
+
+  const spd=G.speed*60*dt;
+  obs.forEach(o=>o.x-=spd);
+  en.forEach(e=>{e.x-=spd*(e.type==='glitch'?1.18:1.02);if(e.type==='glitch')e.bob+=dt*5});
+  orbs.forEach(o=>o.x-=spd);
+  bolts.forEach(b=>{b.x+=18.5*60*dt;b.life-=dt});
+  fall.forEach(f=>{f.y+=f.vy*dt;f.x+=f.vx*dt;f.a+=dt;if(f.y>gY+10){f.y=-5;f.x=Math.random()*W/S}});
+
+  const pw=P.sliding?32:P.w,ph=P.sliding?22:P.h,py=P.sliding?11:0;
+  function hurt(n){if(P.inv>0)return;G.will-=n;P.inv=0.92;G.shake=0.22;spawnP(P.x,gY+P.y,st.color,8,2.5);if(G.will<=0)gameOver()}
+
+  obs=obs.filter(o=>{
+    if(o.x+o.w<-25)return false;
+    if(P.inv<=0&&P.x<o.x+o.w&&P.x+pw>o.x&&py<o.y+o.h&&py+ph>o.y){
+      if(o.type==='wall'&&P.sliding){G.score+=22;return true}
+      if(o.type==='rubble'&&!P.onGround&&P.y<-12)return true;
+      hurt(14);
+    }
+    return true;
+  });
+  en=en.filter(e=>{
+    if(e.x+e.w<-30)return false;
+    const ey=e.type==='glitch'?-28+Math.sin(e.bob)*12:0;
+    bolts.forEach(b=>{if(!b.hit&&b.life>0&&b.x>e.x&&b.x<e.x+e.w&&Math.abs(P.y-ey)<50){e.hp=0;b.hit=true;G.score+=50;G.kills++;G.will=Math.min(100,G.will+8);spawnP(e.x,gY+ey,st.color,10,3)}});
+    if(e.hp<=0)return false;
+    if(P.inv<=0&&P.x<e.x+e.w&&P.x+pw>e.x&&py<ey+e.h&&py+ph>ey)hurt(13);
+    return true;
+  });
+  orbs=orbs.filter(o=>{
+    if(o.x<-20)return false;
+    if(!o.taken&&Math.hypot(P.x+14-o.x,(P.y-15)-o.y)<34){o.taken=true;G.score+=40;G.will=Math.min(100,G.will+16);spawnP(o.x,gY+o.y,st.color,8,2.6);showMsg('NODO',0.65);return false}
+    return true;
+  });
+  bolts=bolts.filter(b=>b.life>0);
+  pt=pt.filter(p=>{p.x+=p.vx*60*dt;p.y+=p.vy*60*dt;p.vy+=6*dt;p.life-=dt;return p.life>0});
+  updateHUD();
+}
+
+function draw(){
+  const st=STAGES[current]||STAGES[0];
+  const grd=ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,st.bg);grd.addColorStop(1,'#050810');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  if(G.phase==='idle')return;
+  ctx.save();
+  if(G.shake>0){const m=G.shake*7;ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m)}
+  ctx.scale(S,S);
+
+  // holographic grid lines
+  ctx.strokeStyle='rgba(80,140,255,0.06)';ctx.lineWidth=1;
+  for(let i=0;i<8;i++){const y=gY-i*40;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W/S,y);ctx.stroke()}
+
+  // scan pillars (archive shelves)
+  ctx.fillStyle='rgba(40,70,120,0.35)';
+  for(let i=0;i<12;i++){
+    const px=((i*145-G.dist*0.18)%(W/S+210))-45;
+    const ph=55+(i*37)%80;
+    ctx.fillRect(px,gY-ph,12+(i%5),ph);
+    ctx.fillStyle='rgba(100,160,255,0.12)';ctx.fillRect(px+2,gY-ph+8,4,ph-16);
+    ctx.fillStyle='rgba(40,70,120,0.35)';
+  }
+
+  ctx.fillStyle='#060a12';ctx.fillRect(0,gY,W/S+20,95);
+  ctx.fillStyle=st.color;ctx.globalAlpha=0.3;ctx.fillRect(0,gY,W/S+20,2);ctx.globalAlpha=1;
+
+  // floating holodust
+  fall.forEach(f=>{
+    ctx.fillStyle=`rgba(120,180,255,${0.15+0.25*Math.abs(Math.sin(f.a))})`;
+    ctx.fillRect(f.x,f.y,f.sz,f.sz);
+  });
+
+  orbs.forEach(o=>{
+    ctx.fillStyle=st.color;ctx.shadowColor=st.color;ctx.shadowBlur=14;
+    ctx.beginPath();ctx.arc(o.x,gY+o.y,o.r,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.strokeStyle='rgba(180,220,255,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(o.x,gY+o.y,o.r+4,0,Math.PI*2);ctx.stroke();
+  });
+  obs.forEach(o=>{
+    if(o.type==='rubble'){ctx.fillStyle='#1a2838';ctx.beginPath();ctx.moveTo(o.x,gY+o.y+o.h);ctx.lineTo(o.x+o.w*.3,gY+o.y);ctx.lineTo(o.x+o.w,gY+o.y+o.h*.35);ctx.lineTo(o.x+o.w*.65,gY+o.y+o.h);ctx.fill()}
+    else{ctx.fillStyle='#152030';ctx.fillRect(o.x,gY+o.y,o.w,o.h);ctx.fillStyle=st.color;ctx.globalAlpha=0.4;ctx.fillRect(o.x+3,gY+o.y+5,o.w-6,2);ctx.globalAlpha=1}
+  });
+  en.forEach(e=>{
+    const ey=e.type==='glitch'?-28+Math.sin(e.bob)*12:0;
+    ctx.globalAlpha=e.type==='glitch'?0.65:0.9;
+    ctx.fillStyle=e.type==='glitch'?'#203050':'#1a2438';
+    ctx.fillRect(e.x,gY+ey,e.w,e.h);
+    ctx.fillStyle='#80c0ff';
+    ctx.beginPath();ctx.arc(e.x+8,gY+ey+10,2.2,0,Math.PI*2);ctx.arc(e.x+17,gY+ey+10,2.2,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  const px=P.x,py=gY+P.y+(P.sliding?11:0),ph=P.sliding?22:P.h;
+  const flash=P.inv>0&&Math.floor(P.inv*8)%2;
+  ctx.fillStyle='#101828';
+  ctx.beginPath();ctx.moveTo(px+4,py+5);ctx.quadraticCurveTo(px-12,py+15,px-4,py+ph-3);ctx.lineTo(px+8,py+ph-5);ctx.fill();
+  ctx.fillStyle=flash?'#304868':'#152030';ctx.fillRect(px,py,P.w,ph);
+  ctx.beginPath();ctx.arc(px+14,py-1,10,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=st.color;ctx.shadowColor=st.color;ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(px+10,py-3,2.2,0,Math.PI*2);ctx.arc(px+18,py-3,2.2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+
+  bolts.forEach(b=>{
+    ctx.strokeStyle=st.color;ctx.lineWidth=2.2;ctx.shadowColor=st.color;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(b.x-16,gY+P.y-5);
+    for(let i=0;i<5;i++)ctx.lineTo(b.x-8+i*7+(Math.random()-.5)*5,gY+P.y-10+(Math.random()-.5)*12);
+    ctx.stroke();ctx.shadowBlur=0;
+  });
+  pt.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.55);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill()});
+  ctx.globalAlpha=1;
+
+  const prog=Math.min(1,G.dist/st.goal);
+  ctx.fillStyle='rgba(15,25,50,0.9)';ctx.fillRect(20,8,W/S-40,6);
+  ctx.fillStyle=st.color;ctx.fillRect(20,8,(W/S-40)*prog,6);
+  ctx.restore();
+}
+
+let last=performance.now();
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
