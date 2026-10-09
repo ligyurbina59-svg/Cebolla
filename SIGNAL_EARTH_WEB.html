@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050810">
+<title>SIGNAL://EARTH</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#050810;font-family:system-ui,-apple-system,sans-serif;color:#c8d8f0}
+canvas{display:block;width:100%;height:100%}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 18%,#0e1830 0%,#050810 55%);z-index:10;padding:12px;overflow-y:auto}
+.screen.active{display:flex}
+.mono{width:58px;height:58px;border-radius:14px;margin-bottom:12px;background:linear-gradient(145deg,rgba(60,140,255,.3),rgba(20,40,80,.55));border:1.5px solid rgba(120,180,255,.5);box-shadow:0 0 28px rgba(80,140,255,.4),inset 0 0 16px rgba(100,160,255,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:1px;color:#a0d0ff;animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 24px rgba(80,140,255,.3)}50%{box-shadow:0 0 36px rgba(100,180,255,.55)}}
+h1{color:#90c8ff;font-size:clamp(20px,5.5vw,34px);letter-spacing:4px;text-align:center;margin-bottom:4px;text-shadow:0 0 36px rgba(80,160,255,.4)}
+h2{color:#6080b0;font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;margin-bottom:10px;text-align:center}
+p{color:#506888;font-size:11px;text-align:center;max-width:96%;line-height:1.5;margin-bottom:4px}
+.btn{padding:11px 24px;margin:4px;background:rgba(30,50,90,.94);border:1px solid #5080c0;border-radius:10px;color:#b0d8ff;font-size:12px;font-weight:600;letter-spacing:1px;min-width:155px;cursor:pointer}
+.btn:active{background:rgba(50,80,140,.95);transform:scale(.98)}
+.btn.sec{background:rgba(15,25,45,.9);border-color:#305080;color:#7090b8}
+#hud{position:absolute;top:0;left:0;right:0;padding:6px 10px;display:none;justify-content:space-between;pointer-events:none;z-index:5;font-size:10px}
+#hud .bar{height:5px;width:80px;background:#0e1830;border-radius:2px;overflow:hidden;margin-top:2px}
+#hud .bar-fill{height:100%;border-radius:2px;background:#60a0ff}
+#msg{position:absolute;top:40%;width:100%;text-align:center;color:#a0d8ff;font-size:clamp(12px,3.2vw,16px);font-weight:700;opacity:0;transition:opacity .3s;text-shadow:0 0 14px #2060c0,0 2px 8px #000;pointer-events:none;z-index:6}
+#controls{position:absolute;bottom:10px;left:0;right:0;display:none;justify-content:center;gap:10px;z-index:5;pointer-events:auto}
+.ctrl{width:54px;height:54px;border-radius:50%;background:rgba(15,25,50,.94);border:1.5px solid #4060a0;color:#90b8e8;font-size:15px;display:flex;align-items:center;justify-content:center}
+.ctrl:active,.ctrl.on{border-color:#80c0ff;color:#e0f0ff;box-shadow:0 0 14px rgba(80,160,255,.35);transform:scale(.93)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:360px;width:100%;margin:8px 0}
+.card{background:rgba(20,35,65,.9);border:1.5px solid #305080;border-radius:9px;padding:10px 5px;text-align:center;cursor:pointer}
+.card:active,.card.sel{border-color:#70b0ff;background:rgba(40,70,130,.45);box-shadow:0 0 14px rgba(60,120,255,.2)}
+.card .n{color:#90c8ff;font-weight:700;font-size:11px}
+.card .d{color:#506888;font-size:8px;margin-top:2px}
+.card.lock{opacity:.38;pointer-events:none}
+.tag{font-size:9px;color:#6080b0;letter-spacing:2px;margin-bottom:6px}
+.stats{font-size:11px;color:#7090b0;text-align:left;max-width:300px;line-height:1.5}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="screen-title" class="screen active">
+  <div class="mono">SE</div>
+  <div class="tag">MN24 STUDIOS IA · FROM EARTH · INDIE GLOBAL</div>
+  <h1>SIGNAL://EARTH</h1>
+  <h2>LAST ARCHIVE · TOTAL FRONT</h2>
+  <p>Guerras mundiales · nuclear · dioses · brujería · archivo holográfico.<br>Una sola señal. Todo el planeta. Un demo indie para ser visto.</p>
+  <p style="color:#405878;font-size:10px;margin:8px 0 12px">Android APK · Web (iOS / macOS) · Portfolio para contratos</p>
+  <button class="btn" onclick="go('menu')">ACTIVAR SEÑAL</button>
+</div>
+
+<div id="screen-menu" class="screen">
+  <div class="mono" style="width:44px;height:44px;font-size:9px;margin-bottom:8px">SE</div>
+  <h1 style="font-size:clamp(18px,4.5vw,26px);letter-spacing:3px">SIGNAL://EARTH</h1>
+  <h2>Menú</h2>
+  <button class="btn" onclick="go('build')">CAMPAÑA</button>
+  <button class="btn" onclick="startEndless()">SEÑAL INFINITA</button>
+  <button class="btn sec" onclick="go('lore')">QUÉ ES</button>
+  <button class="btn sec" onclick="go('bosses')">JEFES</button>
+  <button class="btn sec" onclick="go('pitch')">PARA EMPRESAS</button>
+  <button class="btn sec" onclick="go('how')">CÓMO JUGAR</button>
+  <button class="btn sec" onclick="go('records')">RÉCORDS</button>
+  <button class="btn sec" onclick="go('credits')">CRÉDITOS</button>
+  <button class="btn sec" onclick="go('title')">VOLVER</button>
+</div>
+
+<div id="screen-lore" class="screen">
+  <h1>QUÉ ES</h1>
+  <p><b style="color:#90c8ff">SIGNAL://EARTH</b> no es una guerra más.</p>
+  <p>Es el <b>último archivo</b> de la Tierra: trincheras, ciudades en llamas, invierno nuclear, panteones caídos, círculos de brujas.</p>
+  <p>Tú operas la señal. Cada capa es una memoria proyectada. Sobrevive hasta el final de la transmisión.</p>
+  <p style="color:#6080b0;font-size:10px;margin-top:6px">Hecho para portfolio indie global · MN24 · From Earth</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-bosses" class="screen">
+  <h1>JEFES</h1>
+  <p><b style="color:#90c8ff">1. GAS WARDEN</b> — 1914 · niebla</p>
+  <p><b style="color:#90c8ff">2. IRON RAIN</b> — 1945 · artillería</p>
+  <p><b style="color:#90c8ff">3. FALLEN SUN</b> — nuclear · núcleo</p>
+  <p><b style="color:#90c8ff">4. MOTHER HEX</b> — brujería · círculo</p>
+  <p><b style="color:#90c8ff">5. OLYMPUS ECHO</b> — dioses · eco</p>
+  <p><b style="color:#90c8ff">6. THE SIGNAL</b> — final · transmisión</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-pitch" class="screen">
+  <h1>PARA EMPRESAS</h1>
+  <h2>Contrato · Talento · Partnership</h2>
+  <p><b style="color:#90c8ff">Producto:</b> demo jugable + monograma SE + narrativa global</p>
+  <p><b style="color:#90c8ff">Stack demo:</b> HTML5/Canvas · APK Android · Web multiplataforma</p>
+  <p><b style="color:#90c8ff">Roadmap:</b> Godot/Unity · audio · Play Store · consoles vía partner</p>
+  <p><b style="color:#90c8ff">Buscamos:</b> publishers, labs, equipos que valoren prototipado IA + diseño</p>
+  <p style="color:#405878;font-size:10px;margin-top:8px">PlayStation / Nintendo: SDK + acuerdo formal. Este APK es la puerta.</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-how" class="screen">
+  <h1>CÓMO JUGAR</h1>
+  <p><b>↑</b> Saltar · <b>↓</b> Cubrir · <b>⚔</b> Pulso</p>
+  <p><b>Integridad</b> baja. <b>Señal</b> sube con nodos (poder y riesgo).</p>
+  <p>Cada capa termina en un jefe. Dispara a la derecha para herirlo.</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-records" class="screen">
+  <h1>RÉCORDS</h1>
+  <div class="stats" id="records-box">—</div>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-build" class="screen">
+  <h1>OPERADOR</h1>
+  <div class="grid" id="build-grid"></div>
+  <button class="btn" id="btnBuild" onclick="go('select')" style="opacity:.4;pointer-events:none">CAPAS</button>
+  <button class="btn sec" onclick="go('menu')">VOLVER</button>
+</div>
+
+<div id="screen-select" class="screen">
+  <h1>CAPAS DE LA SEÑAL</h1>
+  <h2 id="build-label">—</h2>
+  <div class="grid" id="stage-grid"></div>
+  <button class="btn" id="btnGo" onclick="startStage()" style="opacity:.4;pointer-events:none">ENTRAR</button>
+  <button class="btn sec" onclick="go('build')">OPERADORES</button>
+</div>
+
+<div id="screen-game" style="display:none">
+  <div id="hud">
+    <div>Integridad <div class="bar"><div class="bar-fill" id="hp-bar" style="width:100%"></div></div>
+      Señal <span id="sig-val">0</span>% · x<span id="combo">1</span></div>
+    <div style="text-align:right">
+      <div id="stage-name" style="color:#90c8ff;font-weight:700">—</div>
+      <div><span id="score">0</span> · ☠<span id="kills">0</span></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+  <div id="controls">
+    <div class="ctrl" id="btnD">↓</div>
+    <div class="ctrl" id="btnJ">↑</div>
+    <div class="ctrl" id="btnA">⚔</div>
+  </div>
+</div>
+
+<div id="screen-victory" class="screen">
+  <div class="mono" style="width:40px;height:40px;font-size:9px">SE</div>
+  <h1>CAPA ESTABLE</h1>
+  <h2 id="vic-title">—</h2>
+  <p id="vic-stats">—</p>
+  <button class="btn" onclick="nextStage()">SIGUIENTE</button>
+  <button class="btn sec" onclick="go('select')">CAPAS</button>
+  <button class="btn sec" onclick="go('menu')">MENÚ</button>
+</div>
+
+<div id="screen-gameover" class="screen">
+  <h1>SEÑAL PERDIDA</h1>
+  <div class="stats" id="go-stats">—</div>
+  <button class="btn" onclick="retryStage()">RECONECTAR</button>
+  <button class="btn sec" onclick="go('menu')">MENÚ</button>
+</div>
+
+<div id="screen-credits" class="screen">
+  <div class="mono">SE</div>
+  <h1>CRÉDITOS</h1>
+  <p style="color:#90c8ff"><b>SIGNAL://EARTH</b></p>
+  <p>Indie global · IA · From Earth</p>
+  <p style="margin-top:10px"><b>MN24 STUDIOS IA</b> · Mythic Gate</p>
+  <p style="color:#405878;font-size:10px;margin-top:10px">Android · Web · Demo para difusión independiente mundial</p>
+  <button class="btn" onclick="go('menu')">VOLVER</button>
+</div>
+
+<script>
+const OPS={
+  scout:{name:'SCOUT',desc:'+integridad',color:'#80b0e0',hp:120,dmg:1,sigGain:0.8,drain:0.9},
+  signal:{name:'SIGNAL',desc:'+señal poder',color:'#60c0ff',hp:95,dmg:1.3,sigGain:1.4,drain:1.1},
+  archive:{name:'ARCHIVE',desc:'+daño estable',color:'#90a0d0',hp:105,dmg:1.35,sigGain:0.95,drain:1},
+  ghost:{name:'GHOST',desc:'-daño in',color:'#a0b0c0',hp:88,dmg:1,sigGain:1,drain:0.82},
+  hybrid:{name:'HYBRID',desc:'equilibrio+',color:'#a0d0f0',hp:110,dmg:1.2,sigGain:1.15,drain:1}
+};
+const LAYERS=[
+  {id:0,name:'TRINCHERAS',icon:'⚔',tag:'1914',boss:'GAS WARDEN',pattern:'gas',goal:1500,color:'#8a9ab0',bg:'#0c1018',bossHp:100},
+  {id:1,name:'CIUDAD EN LLAMAS',icon:'🔥',tag:'1945',boss:'IRON RAIN',pattern:'rain',goal:1950,color:'#c08060',bg:'#140c0a',bossHp:115},
+  {id:2,name:'INVIERNO NUCLEAR',icon:'☢',tag:'DÍA 0',boss:'FALLEN SUN',pattern:'rad',goal:2450,color:'#70b0a0',bg:'#0a1210',bossHp:130},
+  {id:3,name:'CÍRCULO',icon:'✶',tag:'HEX',boss:'MOTHER HEX',pattern:'hex',goal:2950,color:'#c070b0',bg:'#140a14',bossHp:140},
+  {id:4,name:'OLIMPO EN RUINAS',icon:'⚡',tag:'DIOSES',boss:'OLYMPUS ECHO',pattern:'god',goal:3500,color:'#b0a0e0',bg:'#100e18',bossHp:155},
+  {id:5,name:'LA SEÑAL',icon:'📡',tag:'FINAL',boss:'THE SIGNAL',pattern:'final',goal:4200,color:'#90c8ff',bg:'#080c18',bossHp:200}
+];
+let unlocked=[0],selected=-1,current=0,opId='scout',endless=false;
+let save={bestScore:0,bestSig:0,bestLayer:0,runs:0,kills:0,bosses:0};
+function loadSave(){try{const s=JSON.parse(localStorage.getItem('signal_earth_v1')||'{}');Object.assign(save,s);if(s.unlocked)unlocked=s.unlocked}catch(e){}}
+function persist(){try{localStorage.setItem('signal_earth_v1',JSON.stringify({...save,unlocked}))}catch(e){}}
+loadSave();
+let actx=null;
+function beep(f,d,type='square',v=0.035){try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(actx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);o.stop(actx.currentTime+d)}catch(e){}}
+
+function go(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('hud').style.display='none';
+  document.getElementById('controls').style.display='none';
+  document.getElementById('screen-game').style.display='none';
+  if(n==='game'){document.getElementById('screen-game').style.display='block';document.getElementById('hud').style.display='flex';document.getElementById('controls').style.display='flex';return}
+  const el=document.getElementById('screen-'+n);if(el)el.classList.add('active');
+  if(n==='build')buildOps();
+  if(n==='select'){document.getElementById('build-label').textContent='Op: '+(OPS[opId]||{}).name;buildLayers()}
+  if(n==='records')document.getElementById('records-box').innerHTML=`Score: <b>${save.bestScore}</b><br>Señal máx: <b>${save.bestSig}%</b><br>Capa: <b>${save.bestLayer}</b><br>Jefes: <b>${save.bosses}</b><br>Bajas: <b>${save.kills}</b><br>Partidas: <b>${save.runs}</b>`;
+}
+function buildOps(){
+  const g=document.getElementById('build-grid');g.innerHTML='';
+  Object.keys(OPS).forEach(id=>{
+    const b=OPS[id];const c=document.createElement('div');
+    c.className='card'+(opId===id?' sel':'');
+    c.innerHTML=`<div class="n">${b.name}</div><div class="d">${b.desc}</div>`;
+    c.onclick=()=>{opId=id;document.querySelectorAll('#build-grid .card').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const btn=document.getElementById('btnBuild');btn.style.opacity=1;btn.style.pointerEvents='auto'};
+    g.appendChild(c);
+  });
+  if(opId){const btn=document.getElementById('btnBuild');btn.style.opacity=1;btn.style.pointerEvents='auto'}
+}
+function buildLayers(){
+  const g=document.getElementById('stage-grid');g.innerHTML='';
+  LAYERS.forEach(s=>{
+    const lock=!unlocked.includes(s.id);
+    const c=document.createElement('div');
+    c.className='card'+(selected===s.id?' sel':'')+(lock?' lock':'');
+    c.innerHTML=`<div class="n">${lock?'🔒 ':''}${s.icon} ${s.name}</div><div class="d">${s.tag} · ${s.boss}</div>`;
+    if(!lock)c.onclick=()=>{selected=s.id;document.querySelectorAll('#stage-grid .card').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const b=document.getElementById('btnGo');b.style.opacity=1;b.style.pointerEvents='auto'};
+    g.appendChild(c);
+  });
+}
+function startStage(){if(selected<0)return;endless=false;current=selected;initGame();go('game')}
+function startEndless(){endless=true;current=0;initGame();go('game')}
+function nextStage(){if(current<LAYERS.length-1){if(!unlocked.includes(current+1))unlocked.push(current+1);persist();selected=current+1;current=selected;initGame();go('game')}else go('credits')}
+function retryStage(){initGame();go('game')}
+
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,S,gY;
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);S=Math.min(W/900,H/500);gY=H/S-66}
+addEventListener('resize',resize);resize();
+
+const G={phase:'idle',score:0,kills:0,hp:100,sig:0,time:0,speed:5,dist:0,shake:0,msgT:0,combo:1,comboT:0,boss:false,bossHp:0,bossMax:0,bossT:0,bossPhase:1};
+const P={x:112,y:0,vy:0,w:28,h:40,onGround:true,sliding:false,slideT:0,atk:false,atkT:0,inv:0};
+let obs=[],en=[],pt=[],orbs=[],bolts=[],dust=[];
+let B=OPS.scout;
+
+function showMsg(t,d=1.3){G.msgT=d;const el=document.getElementById('msg');el.textContent=t;el.style.opacity=1}
+function spawnP(x,y,col,n=6,sp=2.5){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2;pt.push({x,y,vx:Math.cos(a)*sp*(.4+Math.random()),vy:Math.sin(a)*sp*(.4+Math.random())-1,life:.35+Math.random()*.3,col,sz:1.4+Math.random()*2.2})}}
+
+const btn={j:0,d:0,a:0};
+function bind(id,k){const el=document.getElementById(id);if(!el)return;const dn=e=>{e.preventDefault();btn[k]=1;el.classList.add('on')};const up=()=>{btn[k]=0;el.classList.remove('on')};el.addEventListener('touchstart',dn,{passive:false});el.addEventListener('touchend',up);el.addEventListener('mousedown',dn);el.addEventListener('mouseup',up)}
+bind('btnJ','j');bind('btnD','d');bind('btnA','a');
+const keys={};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=1);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+
+function initGame(){
+  B=OPS[opId]||OPS.scout;
+  G.phase='play';G.score=0;G.kills=0;G.hp=B.hp;G.sig=0;G.time=0;G.speed=5;G.dist=0;G.combo=1;G.comboT=0;
+  G.boss=false;G.bossHp=0;G.bossT=0;G.bossPhase=1;
+  P.y=0;P.vy=0;P.onGround=true;P.sliding=false;P.atk=false;P.inv=0;
+  obs=[];en=[];pt=[];orbs=[];bolts=[];
+  dust=[];for(let i=0;i<32;i++)dust.push({x:Math.random()*W/S,y:Math.random()*gY,vy:8+Math.random()*26,vx:(Math.random()-.5)*8,sz:1+Math.random()*2,a:Math.random()});
+  document.getElementById('stage-name').textContent=endless?'∞ SEÑAL':(LAYERS[current].icon+' '+LAYERS[current].name);
+  showMsg(endless?'SEÑAL INFINITA':LAYERS[current].boss,1.6);
+  beep(220,0.08);updateHUD();
+}
+function updateHUD(){
+  document.getElementById('score').textContent=Math.floor(G.score);
+  document.getElementById('kills').textContent=G.kills;
+  document.getElementById('sig-val').textContent=Math.floor(G.sig);
+  document.getElementById('combo').textContent=G.combo;
+  document.getElementById('hp-bar').style.width=Math.max(0,G.hp/B.hp*100)+'%';
+  document.getElementById('hp-bar').style.background=G.sig>75?'#f06080':G.sig>50?'#e0c040':'#60a0ff';
+}
+function endRun(win){
+  save.runs++;save.kills+=G.kills;
+  if(G.score>save.bestScore)save.bestScore=Math.floor(G.score);
+  if(G.sig>save.bestSig)save.bestSig=Math.floor(G.sig);
+  if(!endless&&current>save.bestLayer)save.bestLayer=current;
+  if(win&&!endless)save.bosses++;
+  persist();
+  if(win){
+    G.phase='victory';
+    if(!endless&&!unlocked.includes(current+1)&&current<LAYERS.length-1)unlocked.push(current+1);
+    persist();
+    document.getElementById('vic-title').textContent=endless?'∞':LAYERS[current].boss+' CAÍDO';
+    document.getElementById('vic-stats').textContent=`Score ${Math.floor(G.score)} · Señal ${Math.floor(G.sig)}% · x${G.combo}`;
+    setTimeout(()=>go('victory'),800);
+  }else{
+    G.phase='dead';
+    document.getElementById('go-stats').innerHTML=`Op: <b>${B.name}</b><br>Score: <b>${Math.floor(G.score)}</b><br>Señal: <b>${Math.floor(G.sig)}%</b><br>Bajas: <b>${G.kills}</b><br>Combo: <b>x${G.combo}</b><br>${endless?'∞':LAYERS[current].name}`;
+    setTimeout(()=>go('gameover'),600);
+  }
+}
+
+function spawnBoss(pattern){
+  const baseX=W/S+28;
+  if(pattern==='gas'){for(let i=0;i<3;i++)en.push({x:baseX+i*22,y:-8-i*16,w:18,h:18,hp:1,type:'shot',bob:i})}
+  else if(pattern==='rain'){obs.push({x:baseX,y:0,w:34,h:26,type:'rubble'});en.push({x:baseX+40,y:-28,w:16,h:16,hp:1,type:'shot',bob:1});en.push({x:baseX+60,y:0,w:24,h:32,hp:1,type:'foe',bob:0})}
+  else if(pattern==='rad'){for(let i=0;i<2;i++)en.push({x:baseX+i*28,y:4,w:20,h:22,hp:1,type:'rad',bob:Math.random()*4})}
+  else if(pattern==='hex'){for(let i=0;i<4;i++)en.push({x:baseX+i*18,y:-10-Math.sin(i)*20,w:16,h:16,hp:1,type:'witch',bob:i})}
+  else if(pattern==='god'){for(let i=0;i<3;i++)en.push({x:baseX+i*20,y:-20-i*10,w:18,h:18,hp:1,type:'shot',bob:i});en.push({x:baseX+55,y:0,w:26,h:34,hp:2,type:'elite',bob:0})}
+  else{for(let i=0;i<3;i++)en.push({x:baseX+i*20,y:-12-i*14,w:18,h:18,hp:1,type:'shot',bob:i});en.push({x:baseX+55,y:0,w:26,h:34,hp:2,type:'elite',bob:0});if(G.bossPhase>1)en.push({x:baseX+80,y:-28,w:18,h:18,hp:1,type:'witch',bob:2})}
+}
+
+function update(dt){
+  if(G.phase!=='play')return;
+  G.time+=dt;
+  if(G.msgT>0){G.msgT-=dt;if(G.msgT<=0)document.getElementById('msg').style.opacity=0}
+  if(G.shake>0)G.shake-=dt;
+  if(G.comboT>0){G.comboT-=dt;if(G.comboT<=0)G.combo=1}
+  const st=endless?LAYERS[Math.min(5,Math.floor(G.time/48))]:LAYERS[current];
+  G.speed=5+Math.min(7.2,G.time*0.1)+(endless?G.time*0.015:current*0.28);
+  G.dist+=G.speed*60*dt;
+  G.score+=G.speed*5*dt*G.combo;
+  let drain=(1.55+current*0.18)*B.drain;
+  let dmgMul=B.dmg;
+  if(G.sig>75){drain+=1.35;dmgMul*=1.55}
+  else if(G.sig>50){drain+=0.55;dmgMul*=1.25}
+  else if(G.sig>25)dmgMul*=1.1;
+  G.hp=Math.max(0,G.hp-drain*dt);
+  if(G.hp<=0){beep(80,0.18);endRun(false);return}
+  if(!endless&&!G.boss&&G.dist>=st.goal*0.68){
+    G.boss=true;G.bossMax=st.bossHp;G.bossHp=st.bossHp;G.bossT=0;G.bossPhase=1;
+    showMsg('⚠ '+st.boss,2);beep(110,0.18,'sawtooth',0.05);
+  }
+  if(G.boss){
+    G.bossT+=dt;
+    const interval=st.pattern==='final'?0.85:st.pattern==='hex'?1.0:1.3;
+    if(G.bossT>interval){G.bossT=0;spawnBoss(st.pattern)}
+    if(G.bossHp<G.bossMax*0.5&&G.bossPhase===1){G.bossPhase=2;showMsg('FASE 2',1)}
+    if(G.bossHp<=0){G.boss=false;G.score+=320;showMsg(st.boss+' CAÍDO',1.6);beep(480,0.14);if(!endless&&G.dist<st.goal)G.dist=st.goal}
+  }
+  if(!endless&&G.dist>=st.goal&&!G.boss){beep(420,0.1);endRun(true);return}
+
+  const jump=btn.j||keys[' ']||keys['arrowup']||keys['w'];
+  const slide=btn.d||keys['arrowdown']||keys['s'];
+  const atk=btn.a||keys['x']||keys['j'];
+  const cd=opId==='signal'?0.18:0.25;
+  if(jump&&P.onGround&&!P.sliding){P.vy=-775;P.onGround=false}
+  if(slide&&P.onGround){P.sliding=true;P.slideT=0.38}
+  if(atk&&!P.atk){P.atk=true;P.atkT=cd;bolts.push({x:P.x+28,y:P.y-10,life:0.24,hit:false,dmg:dmgMul});beep(180,0.04)}
+
+  P.vy+=2140*dt;P.y+=P.vy*dt;
+  if(P.y>=0){P.y=0;P.vy=0;P.onGround=true}else P.onGround=false;
+  if(P.sliding){P.slideT-=dt;if(P.slideT<=0)P.sliding=false}
+  if(P.atk){P.atkT-=dt;if(P.atkT<=0)P.atk=false}
+  if(P.inv>0)P.inv-=dt;
+
+  if(!G.boss&&Math.random()<0.026+G.time*0.0003+current*0.003){
+    const t=Math.random();
+    if(t<0.3)obs.push({x:W/S+40,y:0,w:32,h:24,type:'rubble'});
+    else if(t<0.5)obs.push({x:W/S+40,y:14,w:38,h:36,type:'wall'});
+    else if(t<0.86){
+      const ty=current>=3?(Math.random()<0.5?'witch':'foe'):(Math.random()<0.4?'rad':'foe');
+      en.push({x:W/S+48,y:0,w:24,h:32,hp:1,type:ty,bob:Math.random()*5});
+    }else orbs.push({x:W/S+36,y:-36-Math.random()*32,r:8,taken:false});
+  }
+  const spd=G.speed*60*dt;
+  obs.forEach(o=>o.x-=spd);
+  en.forEach(e=>{e.x-=spd*(e.type==='shot'?1.32:e.type==='witch'?1.12:1);if(e.type==='witch'||e.type==='rad')e.bob+=dt*4});
+  orbs.forEach(o=>o.x-=spd);
+  bolts.forEach(b=>{b.x+=19*60*dt;b.life-=dt});
+  dust.forEach(f=>{f.y+=f.vy*dt;f.x+=f.vx*dt;f.a+=dt;if(f.y>gY+6){f.y=-4;f.x=Math.random()*W/S}});
+
+  const pw=P.sliding?30:P.w,ph=P.sliding?20:P.h,py=P.sliding?12:0;
+  const reduce=opId==='ghost'?0.72:1;
+  function hurt(n){if(P.inv>0)return;G.hp-=n*reduce;P.inv=0.85;G.shake=0.18;G.combo=1;spawnP(P.x,gY+P.y,st.color,5,2);beep(90,0.06);if(G.hp<=0)endRun(false)}
+  obs=obs.filter(o=>{
+    if(o.x+o.w<-20)return false;
+    if(P.inv<=0&&P.x<o.x+o.w&&P.x+pw>o.x&&py<o.y+o.h&&py+ph>o.y){
+      if(o.type==='wall'&&P.sliding){G.score+=12;return true}
+      if(o.type==='rubble'&&!P.onGround&&P.y<-10)return true;
+      hurt(11);
+    }
+    return true;
+  });
+  en=en.filter(e=>{
+    if(e.x+e.w<-22)return false;
+    const ey=(e.type==='witch'||e.type==='rad')?Math.sin(e.bob)*6:e.type==='shot'?-18-e.bob*7:0;
+    bolts.forEach(b=>{
+      if(!b.hit&&b.life>0&&b.x>e.x&&b.x<e.x+e.w&&Math.abs(P.y-ey)<48){
+        e.hp-=b.dmg;b.hit=true;
+        if(e.hp<=0){G.score+=36*G.combo;G.kills++;G.combo=Math.min(9,G.combo+1);G.comboT=2;G.hp=Math.min(B.hp,G.hp+3);spawnP(e.x,gY+ey,st.color,5,2.2);beep(240,0.03)}
+      }
+    });
+    if(e.hp<=0)return false;
+    if(P.inv<=0&&P.x<e.x+e.w&&P.x+pw>e.x&&py<ey+e.h&&py+ph>ey)hurt(e.type==='elite'?15:e.type==='witch'?13:10);
+    return true;
+  });
+  if(G.boss)bolts.forEach(b=>{if(!b.hit&&b.life>0&&b.x>W/S*0.52){G.bossHp-=b.dmg*10;b.hit=true;spawnP(b.x,gY-24,st.color,3,1.6)}});
+  orbs=orbs.filter(o=>{
+    if(o.x<-14)return false;
+    if(!o.taken&&Math.hypot(P.x+14-o.x,(P.y-14)-o.y)<32){
+      o.taken=true;G.score+=22;G.sig=Math.min(100,G.sig+10*B.sigGain);G.hp=Math.min(B.hp,G.hp+5);
+      spawnP(o.x,gY+o.y,'#90c8ff',5,2);beep(360,0.05,'sine',0.03);
+      if(G.sig>75)showMsg('SEÑAL CRÍTICA',0.6);
+      return false;
+    }
+    return true;
+  });
+  bolts=bolts.filter(b=>b.life>0);
+  pt=pt.filter(p=>{p.x+=p.vx*60*dt;p.y+=p.vy*60*dt;p.vy+=6*dt;p.life-=dt;return p.life>0});
+  updateHUD();
+}
+
+function draw(){
+  const st=endless?LAYERS[Math.min(5,Math.floor(G.time/48))]:(LAYERS[current]||LAYERS[0]);
+  const grd=ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,st.bg);grd.addColorStop(1,'#050810');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  if(G.phase==='idle')return;
+  ctx.save();
+  if(G.shake>0){const m=G.shake*5;ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m)}
+  ctx.scale(S,S);
+  ctx.strokeStyle='rgba(80,140,255,0.05)';ctx.lineWidth=1;
+  for(let i=0;i<7;i++){const y=gY-i*38;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W/S,y);ctx.stroke()}
+  if(current>=4||(endless&&G.time>100)){
+    ctx.fillStyle='rgba(160,180,255,0.12)';
+    ctx.beginPath();ctx.arc(W/S*0.78,gY*0.18,30,0,Math.PI*2);ctx.fill();
+  }
+  ctx.fillStyle='rgba(40,60,100,0.4)';
+  for(let i=0;i<10;i++){const px=((i*148-G.dist*0.18)%(W/S+200))-40;ctx.fillRect(px,gY-(48+(i*37)%78),12+(i%5),48+(i*37)%78)}
+  ctx.fillStyle='#060a12';ctx.fillRect(0,gY,W/S+20,88);
+  ctx.fillStyle=st.color;ctx.globalAlpha=0.25;ctx.fillRect(0,gY,W/S+20,2);ctx.globalAlpha=1;
+  dust.forEach(f=>{ctx.fillStyle=`rgba(120,180,255,${0.12+0.2*Math.abs(Math.sin(f.a||0))})`;ctx.fillRect(f.x,f.y,f.sz,f.sz)});
+  orbs.forEach(o=>{ctx.fillStyle='#90c8ff';ctx.shadowColor='#60a0ff';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(o.x,gY+o.y,o.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0});
+  obs.forEach(o=>{
+    if(o.type==='rubble'){ctx.fillStyle='#1a2838';ctx.beginPath();ctx.moveTo(o.x,gY+o.y+o.h);ctx.lineTo(o.x+o.w*.3,gY+o.y);ctx.lineTo(o.x+o.w,gY+o.y+o.h*.3);ctx.lineTo(o.x+o.w*.6,gY+o.y+o.h);ctx.fill()}
+    else{ctx.fillStyle='#152030';ctx.fillRect(o.x,gY+o.y,o.w,o.h)}
+  });
+  en.forEach(e=>{
+    const ey=(e.type==='witch'||e.type==='rad')?Math.sin(e.bob)*6:e.type==='shot'?-18-e.bob*7:0;
+    ctx.fillStyle=e.type==='witch'?'#2a2040':e.type==='rad'?'#1a3028':e.type==='elite'?'#302040':'#1a2438';
+    ctx.fillRect(e.x,gY+ey,e.w,e.h);
+    ctx.fillStyle=e.type==='witch'?'#c080e0':e.type==='rad'?'#70e090':'#80c0ff';
+    ctx.beginPath();ctx.arc(e.x+e.w*.3,gY+ey+8,1.8,0,Math.PI*2);ctx.arc(e.x+e.w*.7,gY+ey+8,1.8,0,Math.PI*2);ctx.fill();
+  });
+  if(G.boss){
+    const bx=W/S*0.72,by=gY-52;
+    ctx.fillStyle=st.color;ctx.globalAlpha=0.35;ctx.fillRect(bx,by,54,48);ctx.globalAlpha=1;
+    ctx.strokeStyle=st.color;ctx.lineWidth=2;ctx.strokeRect(bx,by,54,48);
+    ctx.fillStyle='#c0e0ff';ctx.font='9px sans-serif';ctx.fillText(st.boss,bx,by-4);
+    ctx.fillStyle='rgba(15,25,50,0.9)';ctx.fillRect(W/S*0.15,14,W/S*0.7,7);
+    ctx.fillStyle=G.bossPhase>1?'#f05070':'#70b0ff';
+    ctx.fillRect(W/S*0.15,14,W/S*0.7*(G.bossHp/G.bossMax),7);
+  }
+  const px=P.x,py=gY+P.y+(P.sliding?12:0),ph=P.sliding?20:P.h;
+  const flash=P.inv>0&&Math.floor(P.inv*8)%2;
+  ctx.fillStyle='#101828';ctx.beginPath();ctx.moveTo(px+4,py+4);ctx.quadraticCurveTo(px-10,py+12,px-3,py+ph-2);ctx.lineTo(px+6,py+ph-4);ctx.fill();
+  ctx.fillStyle=flash?'#304868':'#152030';ctx.fillRect(px,py,P.w,ph);
+  ctx.beginPath();ctx.arc(px+14,py-1,9,0,Math.PI*2);ctx.fill();
+  const eye=G.sig>50?'#90c8ff':B.color;
+  ctx.fillStyle=eye;ctx.shadowColor=eye;ctx.shadowBlur=5;
+  ctx.beginPath();ctx.arc(px+10,py-2,2,0,Math.PI*2);ctx.arc(px+17,py-2,2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  bolts.forEach(b=>{
+    ctx.strokeStyle=G.sig>50?'#90c8ff':B.color;ctx.lineWidth=2;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=7;
+    ctx.beginPath();ctx.moveTo(b.x-12,gY+P.y-4);
+    for(let i=0;i<4;i++)ctx.lineTo(b.x-5+i*6+(Math.random()-.5)*4,gY+P.y-8+(Math.random()-.5)*9);
+    ctx.stroke();ctx.shadowBlur=0;
+  });
+  pt.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill()});
+  ctx.globalAlpha=1;
+  if(!endless){
+    const prog=Math.min(1,G.dist/st.goal);
+    ctx.fillStyle='rgba(15,25,50,0.85)';ctx.fillRect(18,4,W/S-36,4);
+    ctx.fillStyle=st.color;ctx.fillRect(18,4,(W/S-36)*prog,4);
+  }
+  ctx.restore();
+}
+let last=performance.now();
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
