@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>VIKING ACTION - Serie de Acción</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+  body {
+    background: #0a0a0a;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #gameCanvas {
+    display: block;
+    background: linear-gradient(to bottom, #1a2a3a 0%, #0d1b2a 60%, #2d4a2d 60%, #1a3a1a 100%);
+    width: 100vw;
+    height: 100vh;
+  }
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .stat {
+    background: rgba(0,0,0,0.7);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 2px solid #c9a227;
+    font-size: 14px;
+  }
+  #controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: 20;
+  }
+  .btn-group {
+    display: flex;
+    gap: 12px;
+  }
+  .btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(201, 162, 39, 0.85);
+    border: 3px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #1a1a1a;
+    font-weight: bold;
+    box-shadow: 0 4px 0 #8b6914;
+    user-select: none;
+  }
+  .btn:active, .btn.active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #8b6914;
+    background: #e8c547;
+  }
+  #startScreen, #gameOverScreen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    text-align: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 42px;
+    color: #c9a227;
+    text-shadow: 3px 3px 0 #5c3d0a;
+    margin-bottom: 10px;
+  }
+  .subtitle { color: #aaa; margin-bottom: 30px; font-size: 16px; }
+  .big-btn {
+    background: #c9a227;
+    color: #1a1a1a;
+    border: none;
+    padding: 16px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 12px;
+    margin: 10px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #8b6914;
+  }
+  .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #8b6914; }
+  #finalScore { font-size: 28px; color: #c9a227; margin: 20px 0; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+  <div class="stat">⚔️ SCORE: <span id="score">0</span></div>
+  <div class="stat">❤️ <span id="lives">3</span></div>
+  <div class="stat">🔥 COMBO: <span id="combo">0</span></div>
+</div>
+
+<div id="controls">
+  <div class="btn-group">
+    <div class="btn" id="btnLeft">◀</div>
+    <div class="btn" id="btnRight">▶</div>
+  </div>
+  <div class="btn-group">
+    <div class="btn" id="btnJump">▲</div>
+    <div class="btn" id="btnAttack">⚔</div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <h1>VIKING ACTION</h1>
+  <div class="subtitle">Serie de Acción • Controles Táctiles</div>
+  <p style="max-width:300px;margin-bottom:30px;color:#ccc;">
+    Corre, salta y destroza enemigos.<br>
+    ¡Sobrevive el mayor tiempo posible!
+  </p>
+  <button class="big-btn" id="startBtn">▶ JUGAR</button>
+</div>
+
+<div id="gameOverScreen" style="display:none;">
+  <h1>💀 GAME OVER</h1>
+  <div id="finalScore">Puntuación: 0</div>
+  <button class="big-btn" id="restartBtn">REINTENTAR</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ===== GAME STATE =====
+let gameState = 'start'; // start, playing, gameover
+let score = 0;
+let lives = 3;
+let combo = 0;
+let speed = 4;
+let frame = 0;
+let groundY;
+
+// Player
+const player = {
+  x: 80,
+  y: 0,
+  w: 40,
+  h: 55,
+  vy: 0,
+  onGround: true,
+  attacking: false,
+  attackTimer: 0,
+  invincible: 0,
+  direction: 1
+};
+
+// Arrays
+let enemies = [];
+let particles = [];
+let obstacles = [];
+
+// Controls
+const keys = { left: false, right: false, jump: false, attack: false };
+
+// ===== INPUT =====
+function setupControls() {
+  const btns = {
+    btnLeft: 'left',
+    btnRight: 'right',
+    btnJump: 'jump',
+    btnAttack: 'attack'
+  };
+  Object.entries(btns).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    const down = (e) => { e.preventDefault(); keys[key] = true; el.classList.add('active'); };
+    const up = (e) => { e.preventDefault(); keys[key] = false; el.classList.remove('active'); };
+    el.addEventListener('touchstart', down, {passive:false});
+    el.addEventListener('touchend', up, {passive:false});
+    el.addEventListener('touchcancel', up, {passive:false});
+    el.addEventListener('mousedown', down);
+    el.addEventListener('mouseup', up);
+    el.addEventListener('mouseleave', up);
+  });
+}
+setupControls();
+
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('restartBtn').onclick = startGame;
+
+function startGame() {
+  gameState = 'playing';
+  score = 0;
+  lives = 3;
+  combo = 0;
+  speed = 4;
+  frame = 0;
+  enemies = [];
+  particles = [];
+  obstacles = [];
+  player.x = 80;
+  player.y = 0;
+  player.vy = 0;
+  player.onGround = true;
+  player.attacking = false;
+  player.invincible = 0;
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameOverScreen').style.display = 'none';
+  updateUI();
+}
+
+// ===== HELPERS =====
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function rectsCollide(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function spawnEnemy() {
+  const types = ['wolf', 'raider', 'troll'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  let w = 35, h = 40, hp = 1, color = '#8B4513';
+  if (type === 'raider') { w = 38; h = 50; hp = 2; color = '#4a2c0a'; }
+  if (type === 'troll') { w = 55; h = 70; hp = 4; color = '#2d5a2d'; }
+  enemies.push({
+    x: W + 20,
+    y: groundY - h,
+    w, h, hp, type, color,
+    speed: speed * (0.7 + Math.random() * 0.4)
+  });
+}
+
+function spawnObstacle() {
+  obstacles.push({
+    x: W + 20,
+    y: groundY - 30,
+    w: 30,
+    h: 30
+  });
+}
+
+function addParticles(x, y, color, count = 8) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: rand(-4, 4),
+      vy: rand(-6, -1),
+      life: 30 + Math.random() * 20,
+      color
+    });
+  }
+}
+
+// ===== UPDATE =====
+function update() {
+  if (gameState !== 'playing') return;
+  frame++;
+  groundY = H * 0.72;
+
+  // Speed increases
+  if (frame % 400 === 0) speed += 0.3;
+
+  // Player movement
+  if (keys.left) { player.x -= 5; player.direction = -1; }
+  if (keys.right) { player.x += 5; player.direction = 1; }
+  player.x = Math.max(20, Math.min(W - 60, player.x));
+
+  // Jump
+  if (keys.jump && player.onGround) {
+    player.vy = -14;
+    player.onGround = false;
+  }
+  player.vy += 0.7; // gravity
+  player.y += player.vy;
+  if (player.y >= groundY - player.h) {
+    player.y = groundY - player.h;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // Attack
+  if (keys.attack && !player.attacking) {
+    player.attacking = true;
+    player.attackTimer = 15;
+  }
+  if (player.attacking) {
+    player.attackTimer--;
+    if (player.attackTimer <= 0) player.attacking = false;
+  }
+
+  if (player.invincible > 0) player.invincible--;
+
+  // Spawn
+  if (frame % 90 === 0) spawnEnemy();
+  if (frame % 180 === 0 && Math.random() > 0.4) spawnObstacle();
+
+  // Enemies
+  enemies.forEach(e => {
+    e.x -= e.speed;
+  });
+  enemies = enemies.filter(e => e.x > -80);
+
+  // Obstacles
+  obstacles.forEach(o => o.x -= speed);
+  obstacles = obstacles.filter(o => o.x > -50);
+
+  // Collisions - Attack
+  if (player.attacking) {
+    const axe = {
+      x: player.direction > 0 ? player.x + player.w : player.x - 35,
+      y: player.y + 10,
+      w: 40, h: 30
+    };
+    enemies.forEach(e => {
+      if (rectsCollide(axe, e)) {
+        e.hp--;
+        addParticles(e.x + e.w/2, e.y + e.h/2, '#ff4444');
+        if (e.hp <= 0) {
+          score += e.type === 'troll' ? 50 : e.type === 'raider' ? 25 : 10;
+          combo++;
+          addParticles(e.x + e.w/2, e.y + e.h/2, '#c9a227', 12);
+          e.x = -999;
+        }
+      }
+    });
+  }
+
+  // Collisions - Damage
+  if (player.invincible <= 0) {
+    const pBox = { x: player.x + 8, y: player.y + 5, w: player.w - 16, h: player.h - 10 };
+    enemies.forEach(e => {
+      if (rectsCollide(pBox, e)) {
+        lives--;
+        combo = 0;
+        player.invincible = 60;
+        addParticles(player.x + player.w/2, player.y + player.h/2, '#ff0000', 15);
+        if (lives <= 0) gameOver();
+      }
+    });
+    obstacles.forEach(o => {
+      if (rectsCollide(pBox, o)) {
+        lives--;
+        combo = 0;
+        player.invincible = 60;
+        addParticles(player.x + player.w/2, player.y + player.h/2, '#ff0000', 10);
+        if (lives <= 0) gameOver();
+      }
+    });
+  }
+
+  // Score over time
+  if (frame % 10 === 0) score += 1 + Math.floor(combo / 5);
+
+  // Particles
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  updateUI();
+}
+
+function gameOver() {
+  gameState = 'gameover';
+  document.getElementById('finalScore').textContent = 'Puntuación: ' + score;
+  document.getElementById('gameOverScreen').style.display = 'flex';
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('combo').textContent = combo;
+}
+
+// ===== DRAW =====
+function draw() {
+  // Sky already set by CSS gradient, clear only lower part if needed
+  ctx.clearRect(0, 0, W, H);
+
+  // Ground
+  ctx.fillStyle = '#2d4a2d';
+  ctx.fillRect(0, groundY, W, H - groundY);
+  // Grass line
+  ctx.fillStyle = '#3a6b3a';
+  ctx.fillRect(0, groundY, W, 8);
+
+  // Mountains background
+  ctx.fillStyle = '#1a2a3a';
+  for (let i = 0; i < 5; i++) {
+    const mx = ((i * 180 - frame * 0.3) % (W + 200)) - 100;
+    ctx.beginPath();
+    ctx.moveTo(mx, groundY);
+    ctx.lineTo(mx + 90, groundY - 120 - i * 20);
+    ctx.lineTo(mx + 180, groundY);
+    ctx.fill();
+  }
+
+  // Player
+  ctx.save();
+  if (player.invincible > 0 && Math.floor(player.invincible / 4) % 2 === 0) {
+    ctx.globalAlpha = 0.4;
+  }
+  // Body
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(player.x + 8, player.y + 15, 24, 30);
+  // Head
+  ctx.fillStyle = '#e0c090';
+  ctx.fillRect(player.x + 10, player.y, 20, 18);
+  // Helmet
+  ctx.fillStyle = '#c9a227';
+  ctx.fillRect(player.x + 8, player.y - 5, 24, 12);
+  // Horns
+  ctx.fillStyle = '#ddd';
+  ctx.fillRect(player.x + 4, player.y - 12, 6, 12);
+  ctx.fillRect(player.x + 30, player.y - 12, 6, 12);
+  // Legs
+  ctx.fillStyle = '#5c3d0a';
+  ctx.fillRect(player.x + 10, player.y + 42, 8, 13);
+  ctx.fillRect(player.x + 22, player.y + 42, 8, 13);
+  // Axe when attacking
+  if (player.attacking) {
+    ctx.fillStyle = '#aaa';
+    const ax = player.direction > 0 ? player.x + player.w - 5 : player.x - 25;
+    ctx.fillRect(ax, player.y + 15, 30, 8);
+    ctx.fillStyle = '#666';
+    ctx.fillRect(ax + (player.direction > 0 ? 22 : 0), player.y + 8, 10, 22);
+  }
+  ctx.restore();
+
+  // Enemies
+  enemies.forEach(e => {
+    ctx.fillStyle = e.color;
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    // Eyes
+    ctx.fillStyle = '#ff2222';
+    ctx.fillRect(e.x + 8, e.y + 10, 6, 6);
+    ctx.fillRect(e.x + e.w - 14, e.y + 10, 6, 6);
+    if (e.type === 'troll') {
+      ctx.fillStyle = '#1a3a1a';
+      ctx.fillRect(e.x + 10, e.y - 15, 35, 20); // horns/hat
+    }
+  });
+
+  // Obstacles (rocks)
+  obstacles.forEach(o => {
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y + o.h);
+    ctx.lineTo(o.x + 8, o.y);
+    ctx.lineTo(o.x + 22, o.y + 5);
+    ctx.lineTo(o.x + o.w, o.y + o.h);
+    ctx.fill();
+  });
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life / 40;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 4, 4);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===== LOOP =====
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
