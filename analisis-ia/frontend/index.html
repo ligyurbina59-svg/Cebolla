@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081426">
+<title>ANÁLISIS VIRTUAL IA</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#07111f;color:#eaf2ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#15365b 0,transparent 35%),#07111f}
+main{max-width:960px;margin:auto;padding:28px 18px 60px}.tag{color:#6ee7d2;font-size:.8rem;letter-spacing:.14em}
+h1{font-size:clamp(2rem,6vw,3.5rem);margin:.4rem 0}p{color:#aebed2;line-height:1.6}
+.panel{background:#101f33;border:1px solid #28415d;border-radius:18px;padding:22px;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+label{display:block;color:#b9cbe0;font-size:.9rem;margin-bottom:6px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #38536f;background:#081729;color:white}
+button{padding:13px 18px;border:0;border-radius:10px;background:#54d7c2;color:#05201e;font-weight:800;cursor:pointer;margin-top:16px}
+.metric{font-size:2rem;font-weight:800;color:#6ee7d2}.muted{color:#aebed2}.hidden{display:none}
+li{margin:9px 0;line-height:1.5}.foot{font-size:.82rem;color:#8da2bb}
+</style>
+</head>
+<body><main>
+<div class="tag">MN24 LABS · INTELLIGENCE WORKSPACE</div>
+<h1>ANÁLISIS VIRTUAL IA</h1>
+<p>Analiza progreso, actividad y áreas de mejora. Introduce métricas autorizadas y recibe un informe explicable.</p>
+<section class="panel">
+<h2>Datos de análisis</h2>
+<form id="form">
+<div class="grid">
+<div><label for="subject">Área o materia</label><input id="subject" value="Programación" maxlength="100"></div>
+<div><label for="completed">Tareas completadas</label><input id="completed" type="number" min="0" value="7" required></div>
+<div><label for="total">Tareas totales</label><input id="total" type="number" min="1" value="10" required></div>
+<div><label for="errors">Errores registrados</label><input id="errors" type="number" min="0" value="3"></div>
+<div><label for="minutes">Minutos de estudio</label><input id="minutes" type="number" min="0" value="90"></div>
+<div><label for="commits">Commits GitHub (opcional)</label><input id="commits" type="number" min="0" value="4"></div>
+</div><button type="submit">Generar análisis</button>
+</form>
+<p class="foot">No introduzcas nombres, contraseñas, tokens ni información sensible.</p>
+</section>
+<section id="result" class="panel hidden" aria-live="polite">
+<div class="tag">INFORME GENERADO</div><h2 id="level"></h2>
+<div class="metric" id="percent"></div><p id="subjectOut"></p>
+<div class="grid"><div><h3>Hallazgos</h3><ul id="findings"></ul></div><div><h3>Recomendaciones</h3><ul id="recommendations"></ul></div></div>
+<p class="foot" id="method"></p>
+</section>
+<p id="status" class="muted" role="status"></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+$("form").addEventListener("submit",async e=>{
+ e.preventDefault(); $("status").textContent="Analizando…";
+ const payload={subject:$("subject").value||"General",completed_tasks:+$("completed").value,total_tasks:+$("total").value,errors:+$("errors").value,study_minutes:+$("minutes").value,github_commits:+$("commits").value};
+ try{
+  const response=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const data=await response.json(); if(!response.ok) throw new Error(data.detail||"No se pudo analizar");
+  $("level").textContent=data.level;$("percent").textContent=data.completion_percent+"%";
+  $("subjectOut").textContent="Área: "+data.subject+" · "+data.activity_signal;
+  for(const [id,items] of [["findings",data.findings],["recommendations",data.recommendations]]){
+   $(id).replaceChildren(...items.map(item=>{const li=document.createElement("li");li.textContent=item;return li;}));
+  }
+  $("method").textContent=data.method;$("result").classList.remove("hidden");$("status").textContent="Análisis completado.";
+ }catch(err){$("status").textContent="Error: "+err.message+" · Comprueba que la API esté ejecutándose.";}
+});
+</script></body></html>
