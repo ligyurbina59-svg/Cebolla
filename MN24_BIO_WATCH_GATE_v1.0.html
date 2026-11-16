@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0e14">
+<title>MN24 Bio · Watch Gate</title>
+<style>
+:root{--bg:#0a0e14;--p:#121820;--line:#2a3544;--c:#38bdf8;--g:#34d399;--or:#fb923c;--t:#e8eef5;--m:#8b9bb0;--w:#fbbf24;--r:#f87171}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto}
+.hdr{padding:10px 12px;background:linear-gradient(165deg,#152033,#0a0e14 80%);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900;letter-spacing:1px}.brand span{color:var(--g)}
+.badge{font-size:9px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--m)}
+.badge.on{border-color:var(--g);color:var(--g)}
+.tabs{display:flex;gap:2px;overflow-x:auto;padding:6px;border-bottom:1px solid var(--line)}
+.tabs button{flex:0 0 auto;padding:7px 10px;border-radius:11px;border:1px solid var(--line);background:var(--p);color:var(--t);font-size:10px;font-weight:600}
+.tabs button.on{border-color:var(--c);color:var(--c)}
+main{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+.panel{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px}
+h2{margin:0 0 8px;font-size:14px;color:var(--c)}
+.muted{color:var(--m);font-size:11px;line-height:1.45}
+.lock{text-align:center;padding:28px 12px}
+.fp{width:96px;height:96px;margin:16px auto;border-radius:50%;border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:40px;background:#0a0e14;transition:.25s}
+.fp.ok{border-color:var(--g);box-shadow:0 0 24px #34d39955}
+button.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:800;margin:4px 0;background:linear-gradient(135deg,#34d399,#0d9488);color:#031016}
+button.btn.sec{background:#1a2433;border:1px solid var(--line);color:var(--t);font-weight:600}
+button.btn.or{background:linear-gradient(135deg,#ea580c,#c2410c);color:#fff}
+.watch{width:220px;height:220px;margin:12px auto;border-radius:50%;border:8px solid #334155;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 3px #0a0e14,0 12px 40px #0008;position:relative}
+.watch .cam{font-size:48px;color:var(--or);filter:drop-shadow(0 0 8px #fb923c88)}
+.watch .lab{position:absolute;bottom:36px;left:20px;font-size:11px;color:#fff;font-weight:600}
+.watch .nav{position:absolute;bottom:36px;right:22px;font-size:14px;color:#94a3b8}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#0a0e14;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;cursor:pointer}
+.card:active{border-color:var(--or);transform:scale(.97)}
+.card strong{display:block;font-size:13px;color:var(--or)}
+.card .sub{font-size:10px;color:var(--m);margin-top:4px}
+.card.on{border-color:var(--g);background:#052e16}
+.item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:12px;align-items:center}
+.tag{font-size:9px;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--m)}
+.tag.ok{border-color:var(--g);color:var(--g)}.tag.sim{border-color:var(--w);color:var(--w)}
+.tag.api{border-color:#a78bfa;color:#a78bfa}.tag.no{border-color:var(--r);color:var(--r)}
+.log{font-size:10px;background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:8px;max-height:90px;overflow:auto;color:#94a3b8;white-space:pre-wrap}
+.warn{font-size:10px;color:#fde68a;background:#1c1408;border:1px solid #a16207;border-radius:8px;padding:8px;line-height:1.4;margin:8px 0}
+footer{font-size:9px;text-align:center;color:var(--m);padding:5px;border-top:1px solid var(--line)}
+@media(min-width:700px){.app{max-width:640px;border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="brand"><span>MN24</span> BIO·WATCH</div>
+    <div id="badge" class="badge">BLOQUEADO</div>
+  </div>
+  <div class="tabs" id="tabs" style="display:none">
+    <button class="on" data-v="home">Home</button>
+    <button data-v="bio">Biometría</button>
+    <button data-v="watch">Watch cam</button>
+    <button data-v="desk">Desktop</button>
+    <button data-v="status">Estado</button>
+  </div>
+  <main id="main"></main>
+  <footer>APK + App Web · biometría simulada · cámara reloj OEM</footer>
+</div>
+<script>
+const KEY='mn24_bio_watch_v1';
+const ST={unlocked:false,v:'lock',mode:'Fotos',delay:3,log:[]};
+function load(){try{Object.assign(ST,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({unlocked:ST.unlocked,mode:ST.mode,delay:ST.delay}));}catch(e){}}
+function push(m){ST.log.unshift(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · '+m);if(ST.log.length>25)ST.log.pop();}
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
+
+function setBadge(){
+  const b=$('badge');
+  if(!b)return;
+  b.textContent=ST.unlocked?'DESBLOQUEADO':'BLOQUEADO';
+  b.className='badge'+(ST.unlocked?' on':'');
+}
+
+function unlock(){
+  const fp=$('fp');
+  if(fp){fp.classList.add('ok');fp.textContent='✓';}
+  setTimeout(()=>{
+    ST.unlocked=true; ST.v='home'; push('Biometría OK (simulado)'); save(); render();
+  },450);
+}
+
+function render(){
+  setBadge();
+  const tabs=$('tabs');
+  tabs.style.display=ST.unlocked?'flex':'none';
+  if(ST.unlocked)[...tabs.children].forEach(b=>b.classList.toggle('on',b.dataset.v===ST.v));
+  const m=$('main'); m.innerHTML='';
+  const panel=()=>{const p=el('div','panel');m.appendChild(p);return p;};
+
+  if(!ST.unlocked){
+    const p=panel(); p.classList.add('lock');
+    p.appendChild(el('h2',null,'Verificación biométrica'));
+    p.appendChild(el('p','muted','Huella / rostro · simulación en WebView. En app nativa: BiometricPrompt de Android.'));
+    const fp=el('div','fp'); fp.id='fp'; fp.textContent='👆'; p.appendChild(fp);
+    const b=el('button','btn','Escanear (simular)');
+    b.onclick=unlock;
+    p.appendChild(b);
+    p.appendChild(el('div','warn')).textContent='No se capturan huellas ni datos biológicos reales. No se envía biometría a ningún servidor. “Verificación biológica” de laboratorio (ADN, etc.) no aplica a una app de consumo.';
+    return;
+  }
+
+  if(ST.v==='home'){
+    const p=panel();
+    p.appendChild(el('h2',null,'MN24 Bio · Watch Gate'));
+    p.appendChild(el('p','muted','Puerta biométrica + remoto de cámara del smartwatch (Fotos / Demora / 1p como en tu reloj).'));
+    const g=el('div','grid');
+    [['🔐 Biometría','bio'],['📷 Watch cam','watch'],['🖥 Desktop / Web','desk'],['📋 Estado','status']].forEach(([n,v])=>{
+      const c=el('div','card'); c.innerHTML='<strong style="color:var(--c)">'+n+'</strong>';
+      c.onclick=()=>{ST.v=v;render();}; g.appendChild(c);
+    });
+    p.appendChild(g);
+  }
+
+  else if(ST.v==='bio'){
+    const p=panel();
+    p.appendChild(el('h2',null,'Biometría'));
+    [
+      ['Huella UI (este APK)','sim'],
+      ['Rostro UI','sim'],
+      ['Android BiometricPrompt','api'],
+      ['WebAuthn / passkeys (desktop)','api'],
+      ['Almacenar ADN / biometría sensible','no'],
+      ['Reenviar biometría a la nube','no']
+    ].forEach(([a,k])=>{
+      const i=el('div','item'); i.appendChild(el('strong',null,a));
+      i.appendChild(el('span','tag '+k,k)); p.appendChild(i);
+    });
+    const lock=el('button','btn sec','Bloquear sesión');
+    lock.onclick=()=>{ST.unlocked=false;ST.v='lock';save();render();};
+    p.appendChild(lock);
+  }
+
+  else if(ST.v==='watch'){
+    const p=panel();
+    p.appendChild(el('h2',null,'Smartwatch · cámara remota'));
+    p.appendChild(el('p','muted','Réplica de la UI de tu reloj: icono naranja, Fotos, Demora, navegación. Disparo real = app del fabricante + teléfono.'));
+    const w=el('div','watch');
+    w.innerHTML='<div class="cam">📷</div><div class="lab">Fotos</div><div class="nav">📷 ›</div>';
+    p.appendChild(w);
+    const g=el('div','grid');
+    [['Fotos','Captura inmediata'],['Demora','Temporizador'],['1p','Un disparo'],['Seguido','Ráfaga UI'],['Apagado','Cerrar remoto']].forEach(([mode,sub])=>{
+      const c=el('div','card'+(ST.mode===mode?' on':''));
+      c.innerHTML='<strong>'+mode+'</strong><div class="sub">'+sub+'</div>';
+      c.onclick=()=>{
+        ST.mode=mode; push('Watch: '+mode);
+        if(mode==='Demora'){
+          let n=ST.delay||3;
+          const t=setInterval(()=>{
+            push('Demora '+n+'…');
+            if(--n<=0){clearInterval(t);push('Disparo (UI) · usa app del reloj');alert('Demora terminada.\nPara foto real: botón Fotos en el reloj (app OEM).');}
+          },1000);
+        } else if(mode==='Apagado'){
+          push('Remoto apagado');
+        } else {
+          alert(mode+': control de juego/remoto UI.\nFoto real → app del smartwatch + cámara del teléfono.');
+        }
+        save(); render();
+      };
+      g.appendChild(c);
+    });
+    p.appendChild(g);
+    p.appendChild(el('div','log')).textContent=(ST.log||[]).slice(0,8).join('\n')||'…';
+  }
+
+  else if(ST.v==='desk'){
+    const p=panel();
+    p.appendChild(el('h2',null,'App Web · Desktop'));
+    p.appendChild(el('p','muted','Abre el mismo HTML en el navegador del PC (Chrome/Edge/Firefox). Layout se ensancha en pantallas ≥700px.'));
+    p.appendChild(el('p','muted','Instalación tipo PWA: en el navegador → “Instalar aplicación” si el hosting sirve HTTPS + manifest (pendiente de desplegar).'));
+    [
+      ['HTML local / sideload','ok'],
+      ['APK Android','ok'],
+      ['PWA instalable (hosting)','api'],
+      ['Biometría Windows Hello / macOS','api']
+    ].forEach(([a,k])=>{
+      const i=el('div','item'); i.appendChild(el('strong',null,a));
+      i.appendChild(el('span','tag '+k,k)); p.appendChild(i);
+    });
+  }
+
+  else if(ST.v==='status'){
+    const p=panel();
+    p.appendChild(el('h2',null,'Estado'));
+    [
+      ['Gate biométrico UI','ok'],
+      ['BiometricPrompt nativo','api'],
+      ['Watch UI Fotos/Demora/1p','ok'],
+      ['Disparo cámara OEM','sim'],
+      ['Desktop HTML','ok'],
+      ['Verificación biológica lab','no']
+    ].forEach(([a,k])=>{
+      const i=el('div','item'); i.appendChild(el('strong',null,a));
+      i.appendChild(el('span','tag '+k,k)); p.appendChild(i);
+    });
+  }
+}
+
+$('tabs').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;ST.v=b.dataset.v;render();};
+load();
+if(!ST.unlocked)ST.v='lock';
+render();
+</script>
+</body>
+</html>
