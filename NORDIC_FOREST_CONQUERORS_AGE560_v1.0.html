@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a1f12">
+<title>Nordic Forest Conquerors · Age 560</title>
+<style>
+:root{--bg:#0a1f12;--p:#122a1a;--line:#2d4a38;--gold:#d4a017;--ice:#7dd3fc;--blood:#c0392b;--t:#e8f5e9;--m:#8fbc8f;--ok:#2ecc71}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+.hdr{padding:10px 12px;background:linear-gradient(180deg,#1a3d28,#0a1f12);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900;letter-spacing:.5px;font-size:12px;color:var(--gold)}
+.brand span{color:#7dcea0}
+.stat{font-size:10px;color:var(--m)}
+main{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+.panel{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px}
+h1{margin:0 0 6px;font-size:18px;color:var(--gold);text-align:center}
+h2{margin:0 0 8px;font-size:14px;color:#a8e6cf}
+.muted{color:var(--m);font-size:11px;line-height:1.45}
+.story{font-size:13px;line-height:1.5;margin:8px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#0a1f12;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;cursor:pointer}
+.card:active{border-color:var(--gold);transform:scale(.98)}
+.card strong{display:block;font-size:12px;color:var(--gold)}
+.card .sub{font-size:10px;color:var(--m);margin-top:4px}
+button.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:800;margin:4px 0;background:linear-gradient(135deg,#27ae60,#1e8449);color:#031016}
+button.btn.sec{background:#1a3324;border:1px solid var(--line);color:var(--t);font-weight:600}
+button.btn.war{background:linear-gradient(135deg,#c0392b,#7b241c);color:#fff}
+button.btn.gold{background:linear-gradient(135deg,#d4a017,#9a7b0a);color:#1a1500}
+.row{display:flex;gap:6px}.row .btn{flex:1}
+.bar{height:10px;background:#1a3324;border-radius:6px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#27ae60,#2ecc71)}
+.bar.war i{background:linear-gradient(90deg,#c0392b,#e74c3c)}
+.log{font-size:11px;background:#0a1f12;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:110px;overflow:auto;white-space:pre-wrap;color:#a9cbb0}
+.chip{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:10px;margin:2px;background:#0a1f12}
+.chip.on{border-color:var(--gold);color:var(--gold)}
+.fac{border-left:3px solid var(--gold);padding-left:10px;margin:8px 0}
+.enemy{text-align:center;padding:12px;background:#1c1008;border:1px solid #7b241c;border-radius:12px;margin:8px 0}
+.enemy .name{font-size:15px;font-weight:900;color:#e74c3c}
+footer{font-size:9px;text-align:center;color:var(--m);padding:6px;border-top:1px solid var(--line)}
+.title{text-align:center;padding:20px 10px}
+.title .yr{font-size:28px;color:var(--gold);font-weight:900}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="brand"><span>FOREST</span> CONQUERORS</div>
+    <div class="stat" id="hud">—</div>
+  </div>
+  <main id="main"></main>
+  <footer>Age 560 · Middle Ages · MN24</footer>
+</div>
+<script>
+const KEY='mn24_forest_conquerors_v1';
+const FACTIONS={
+  vikingo:{name:'Vikingo',bonus:'Raid +15%',color:'#5dade2'},
+  celta:{name:'Celta',bonus:'Bosque +15%',color:'#58d68d'},
+  pirata:{name:'Pirata',bonus:'Costa +15%',color:'#f5b041'},
+  babilonio:{name:'Babilonio',bonus:'Saber +15%',color:'#af7ac5'}
+};
+const MISSIONS=[
+  {id:'desembarco',name:'El Desembarco',desc:'Llegar a la costa del bosque nórdico. Año ~560.',diff:1,gold:20,loc:'costa'},
+  {id:'boda',name:'La Boda Prohibida',desc:'Una alianza rota entre clanes del bosque.',diff:2,gold:35,loc:'claro'},
+  {id:'runas',name:'Las Runas Rotas',desc:'Recuperar fragmentos en ruinas celtas.',diff:2,gold:40,loc:'ruinas'},
+  {id:'jarl',name:'El Jarl Caído',desc:'Derrotar al señor de la fortaleza de madera.',diff:3,gold:55,loc:'fuerte'},
+  {id:'trono',name:'Trono del Roble',desc:'Conquistar el corazón del bosque. Edad de los conquistadores.',diff:4,gold:80,loc:'trono'}
+];
+const LOCS={
+  costa:{n:'Costa del Norte',d:'Naves largas y niebla. El año 560 apenas despierta.',ex:['claro','pantano']},
+  claro:{n:'Claro del Clan',d:'Fogatas y juramentos. Aquí se sellan alianzas.',ex:['costa','bosque','ruinas']},
+  pantano:{n:'Pantano de Hel',d:'Agua negra. Nadie conquista sin perder algo.',ex:['costa','bosque']},
+  bosque:{n:'Bosque Nórdico',d:'Robles antiguos. Los conquistadores dejan hachas en la corteza.',ex:['claro','pantano','ruinas','fuerte']},
+  ruinas:{n:'Ruinas Celtas',d:'Piedras más viejas que el imperio caído.',ex:['claro','bosque']},
+  fuerte:{n:'Fuerte de Madera',d:'Empalizada y cuernos. El jarl espera.',ex:['bosque','trono']},
+  trono:{n:'Trono del Roble',d:'Quien se siente aquí nombra la era: Conquerors Age.',ex:['fuerte'],final:1}
+};
+const ENEMIES=[
+  {id:'scout',n:'Explorador rival',hp:28,atk:7},
+  {id:'raider',n:'Asaltante',hp:40,atk:11},
+  {id:'druid',n:'Druida hostil',hp:36,atk:10},
+  {id:'jarl',n:'Jarl del Fuerte',hp:70,atk:16},
+  {id:'shadow',n:'Sombra del Roble',hp:100,atk:20}
+];
+
+const ST={
+  screen:'title', faction:null, mission:null,
+  hp:100, hpMax:100, gold:15, power:1, dim5:1, fracturas:0,
+  loc:'costa', done:[], log:[], battle:null, year:560
+};
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');Object.assign(ST,s);if(!ST.done)ST.done=[];if(!ST.log)ST.log=[];}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({
+  faction:ST.faction,mission:ST.mission,hp:ST.hp,hpMax:ST.hpMax,gold:ST.gold,power:ST.power,
+  dim5:ST.dim5,fracturas:ST.fracturas,loc:ST.loc,done:ST.done,log:ST.log.slice(-40),year:ST.year
+}));}catch(e){}}
+function push(m){ST.log.push(m);if(ST.log.length>50)ST.log.shift();}
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
+function hud(){
+  const h=$('hud');
+  if(h) h.textContent=(ST.faction?FACTIONS[ST.faction].name+' · ':'')+'HP '+ST.hp+' · '+ST.gold+'g · '+ST.year;
+}
+
+function startBattle(e){
+  ST.battle={...e, max:e.hp};
+  ST.screen='battle'; render();
+}
+function doHit(heavy){
+  if(!ST.battle)return;
+  let dmg=(heavy?14:7)+ST.power*2+Math.floor(Math.random()*6);
+  if(ST.faction==='vikingo'&&heavy)dmg=Math.floor(dmg*1.15);
+  ST.battle.hp-=dmg;
+  push('⚔ '+dmg);
+  if(ST.battle.hp<=0){
+    const g=8+ST.battle.max/4|0;
+    ST.gold+=g; ST.power+=1; ST.fracturas++;
+    if(ST.fracturas%3===0)ST.dim5=Math.min(5,ST.dim5+1);
+    push('Victoria +'+g+'g · 5D nivel '+ST.dim5);
+    if(ST.battle.id==='shadow'){ST.done.push('trono'); ST.screen='ending';}
+    else {ST.battle=null; ST.screen='loc';}
+    save(); render(); return;
+  }
+  const ed=Math.max(1,ST.battle.atk-Math.floor(Math.random()*3)-Math.floor(ST.power/3));
+  ST.hp-=ed; push('💥 -'+ed);
+  if(ST.hp<=0){ST.hp=0;ST.battle=null;ST.screen='dead';save();render();return;}
+  save(); render();
+}
+
+function render(){
+  hud();
+  const m=$('main'); m.innerHTML='';
+
+  if(ST.screen==='title'){
+    const p=el('div','panel title');
+    p.innerHTML='<div class="yr">560</div>';
+    p.appendChild(el('h1',null,'Nordic Forest Conquerors'));
+    p.appendChild(el('p','muted','Age of Conquerors · Middle Ages · Bosque, clanes y trono del roble.'));
+    p.appendChild(el('p','story','Elige facción. Cumple misiones. Repara “fracturas” del mapa (mecánica 5D de progresión, no un motor AAA).'));
+    const ng=el('button','btn','Nueva conquista');
+    ng.onclick=()=>{Object.assign(ST,{screen:'faction',faction:null,mission:null,hp:100,hpMax:100,gold:15,power:1,dim5:1,fracturas:0,loc:'costa',done:[],log:[],battle:null,year:560});push('Año 560 · comienza la era');save();render();};
+    const cg=el('button','btn sec','Continuar');
+    cg.onclick=()=>{load();ST.screen=ST.hp<=0?'dead':(ST.faction?'loc':'faction');render();};
+    p.appendChild(ng); p.appendChild(cg); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='faction'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Facción'));
+    p.appendChild(el('p','muted','Pirata · Vikingo · Celta · Babilonio'));
+    const g=el('div','grid');
+    Object.keys(FACTIONS).forEach(id=>{
+      const f=FACTIONS[id];
+      const c=el('div','card');
+      c.innerHTML='<strong style="color:'+f.color+'">'+f.name+'</strong><div class="sub">'+f.bonus+'</div>';
+      c.onclick=()=>{ST.faction=id;push('Facción: '+f.name);ST.screen='missions';save();render();};
+      g.appendChild(c);
+    });
+    p.appendChild(g); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='missions'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Misiones · Age 560'));
+    MISSIONS.forEach(ms=>{
+      const done=ST.done.indexOf(ms.id)>=0;
+      const c=el('div','card');
+      c.style.opacity=done?.5:1;
+      c.innerHTML='<strong>'+ms.name+'</strong><div class="sub">'+(done?'Completada':'Dif. '+ms.diff+' · +'+ms.gold+'g')+'</div>';
+      c.onclick=()=>{
+        if(done)return;
+        ST.mission=ms.id; ST.loc=ms.loc; push('Misión: '+ms.name); ST.screen='loc'; save(); render();
+      };
+      p.appendChild(c);
+    });
+    const b=el('button','btn sec','Explorar libre');
+    b.onclick=()=>{ST.mission=null;ST.screen='loc';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='dead'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Derrota'));
+    p.appendChild(el('p','story','El bosque recupera sus muertos. Año '+ST.year+'.'));
+    const b=el('button','btn','Reintentar era'); b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='ending'){
+    const p=el('div','panel');
+    p.appendChild(el('h1',null,'Trono del Roble'));
+    p.appendChild(el('p','story','Has conquistado el corazón del bosque nórdico. Facción: '+(FACTIONS[ST.faction]?FACTIONS[ST.faction].name:'—')+'. Fracturas reparadas: '+ST.fracturas+'. Nivel 5D (progresión): '+ST.dim5+'/5.'));
+    p.appendChild(el('p','muted','Conquerors Age 560 — fin de la campaña demo.'));
+    const b=el('button','btn gold','Nueva era'); b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='battle'&&ST.battle){
+    const p=el('div','panel');
+    const e=ST.battle;
+    const box=el('div','enemy');
+    box.innerHTML='<div class="name">'+e.n+'</div><div class="bar war"><i style="width:'+Math.max(0,100*e.hp/e.max)+'%"></i></div><div class="muted">'+Math.max(0,e.hp|0)+'/'+e.max+'</div>';
+    p.appendChild(box);
+    p.appendChild(el('div','log')).textContent=ST.log.slice(-8).join('\n');
+    const row=el('div','row');
+    const a=el('button','btn war','Atacar'); a.onclick=()=>doHit(false);
+    const h=el('button','btn gold','Golpe fuerte'); h.onclick=()=>doHit(true);
+    row.appendChild(a); row.appendChild(h); p.appendChild(row);
+    const f=el('button','btn sec','Huir'); f.onclick=()=>{ST.battle=null;ST.hp=Math.max(1,ST.hp-5);ST.screen='loc';save();render();};
+    p.appendChild(f); m.appendChild(p); return;
+  }
+
+  // LOC
+  const loc=LOCS[ST.loc]||LOCS.costa;
+  const p=el('div','panel');
+  p.appendChild(el('h2',null,loc.n));
+  const bar=el('div','bar'); bar.innerHTML='<i style="width:'+Math.max(0,100*ST.hp/ST.hpMax)+'%"></i>'; p.appendChild(bar);
+  p.appendChild(el('p','muted','Año '+ST.year+' · Poder '+ST.power+' · 5D '+ST.dim5+'/5 · Fracturas '+ST.fracturas));
+  const fac=el('div','fac');
+  fac.innerHTML='<strong>'+(ST.faction&&FACTIONS[ST.faction]?FACTIONS[ST.faction].name:'Sin facción')+'</strong><div class="muted">'+(ST.mission?('Misión: '+(MISSIONS.find(x=>x.id===ST.mission)||{}).name||ST.mission):'Exploración libre')+'</div>';
+  p.appendChild(fac);
+  p.appendChild(el('p','story',loc.d));
+
+  if(loc.final){
+    const fight=el('button','btn war','Desafiar Sombra del Roble');
+    fight.onclick=()=>startBattle(ENEMIES[4]);
+    p.appendChild(fight);
+  }
+
+  const g=el('div','grid');
+  (loc.ex||[]).forEach(id=>{
+    const L=LOCS[id]; if(!L)return;
+    const c=el('div','card');
+    c.innerHTML='<strong>'+L.n+'</strong><div class="sub">marchar</div>';
+    c.onclick=()=>{
+      ST.loc=id; ST.year=Math.min(580,ST.year+Math.floor(Math.random()*2));
+      push('→ '+L.n);
+      // chance encounter
+      if(!L.final && Math.random()<0.4){
+        const ei=Math.min(3,Math.floor(Math.random()*3)+Math.floor(ST.power/4));
+        startBattle({...ENEMIES[ei]}); return;
+      }
+      // mission complete on arrive key locs
+      if(ST.mission){
+        const ms=MISSIONS.find(x=>x.id===ST.mission);
+        if(ms && ms.loc===id && ST.done.indexOf(ms.id)<0){
+          ST.done.push(ms.id); ST.gold+=ms.gold; ST.fracturas++;
+          push('Misión completada: '+ms.name+' +'+ms.gold+'g');
+          if(ST.fracturas%3===0)ST.dim5=Math.min(5,ST.dim5+1);
+        }
+      }
+      save(); render();
+    };
+    g.appendChild(c);
+  });
+  p.appendChild(g);
+
+  const row=el('div','row');
+  const rest=el('button','btn sec','Campamento'); rest.onclick=()=>{ST.hp=Math.min(ST.hpMax,ST.hp+25);push('Descanso en el bosque');save();render();};
+  const mis=el('button','btn sec','Misiones'); mis.onclick=()=>{ST.screen='missions';render();};
+  row.appendChild(rest); row.appendChild(mis); p.appendChild(row);
+  const home=el('button','btn sec','Menú'); home.onclick=()=>{ST.screen='title';render();};
+  p.appendChild(home);
+  p.appendChild(el('div','log')).textContent=ST.log.slice(-7).join('\n')||'…';
+  m.appendChild(p);
+}
+
+load();
+render();
+</script>
+</body>
+</html>

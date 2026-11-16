@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0c0a09">
+<title>NORDIC THRONE · Redemption</title>
+<style>
+:root{--bg:#0c0a09;--p:#1c1917;--line:#44403c;--blood:#dc2626;--gold:#fbbf24;--ice:#7dd3fc;--t:#fafaf9;--m:#a8a29e;--ok:#4ade80}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+.hdr{padding:10px 12px;background:linear-gradient(180deg,#450a0a,#0c0a09);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900;letter-spacing:1px;font-size:13px;color:var(--gold)}
+.brand span{color:var(--blood)}
+.hpbar{flex:1;margin:0 10px;height:10px;background:#292524;border-radius:6px;overflow:hidden}
+.hpbar i{display:block;height:100%;background:linear-gradient(90deg,#dc2626,#f87171);width:100%}
+.stat{font-size:10px;color:var(--m)}
+main{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+.panel{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px}
+h1{margin:0 0 6px;font-size:20px;color:var(--gold);text-align:center}
+h2{margin:0 0 8px;font-size:14px;color:var(--ice)}
+.muted{color:var(--m);font-size:11px;line-height:1.45}
+.story{font-size:13px;line-height:1.5;margin:8px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#0c0a09;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;cursor:pointer}
+.card:active{border-color:var(--gold);transform:scale(.98)}
+.card strong{display:block;font-size:12px;color:var(--gold)}
+.card .sub{font-size:10px;color:var(--m);margin-top:4px}
+button.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:800;margin:4px 0;background:linear-gradient(135deg,#dc2626,#7f1d1d);color:#fff}
+button.btn.sec{background:#292524;border:1px solid var(--line);color:var(--t);font-weight:600}
+button.btn.ok{background:linear-gradient(135deg,#4ade80,#166534);color:#052e16}
+button.btn.ice{background:linear-gradient(135deg,#38bdf8,#075985)}
+.row{display:flex;gap:6px}
+.row .btn{flex:1}
+.log{font-size:11px;background:#0c0a09;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:120px;overflow-y:auto;white-space:pre-wrap;color:#d6d3d1}
+.loc{border-left:3px solid var(--gold);padding-left:10px;margin:8px 0}
+.enemy{text-align:center;padding:12px;background:#1c0a0a;border:1px solid #7f1d1d;border-radius:12px;margin:8px 0}
+.enemy .name{font-size:16px;font-weight:900;color:var(--blood)}
+.bar{height:8px;background:#292524;border-radius:4px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--blood)}
+.inv{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:11px;background:#0c0a09}
+.chip.gold{border-color:var(--gold);color:var(--gold)}
+footer{font-size:9px;text-align:center;color:var(--m);padding:6px;border-top:1px solid var(--line)}
+.lang{display:flex;gap:4px}
+.lang button{padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid var(--line);background:#0c0a09;color:var(--m)}
+.lang button.on{border-color:var(--gold);color:var(--gold)}
+.title-screen{text-align:center;padding:24px 12px}
+.title-screen .rune{font-size:42px;margin:12px 0;filter:grayscale(.2)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="brand"><span>NORDIC</span> THRONE</div>
+    <div class="hpbar" title="HP"><i id="hpFill"></i></div>
+    <div class="stat" id="hud">—</div>
+  </div>
+  <main id="main"></main>
+  <footer id="foot">NORDIC THRONE · Redemption · MN24</footer>
+</div>
+<script>
+// --- i18n ---
+const L = {
+  en: {
+    newgame:'New Game', cont:'Continue', lang:'Language',
+    map:'World Map', inv:'Inventory', journal:'Journal', rest:'Rest (camp)',
+    attack:'Attack', skill:'Thunder Strike', flee:'Flee', win:'Victory', lose:'You fall…',
+    take:'Take path', back:'Back', hp:'HP', gold:'Gold', runes:'Runes',
+    story0:'The old gods are silent. The Throne of the North stands empty. You are the last blood of the storm-line. Redemption is not given — it is taken.',
+    dead:'Your saga ends here. The throne waits for another.',
+    restok:'You rest by the fire. Wounds close. The wind still howls.',
+  },
+  es: {
+    newgame:'Nueva partida', cont:'Continuar', lang:'Idioma',
+    map:'Mapa del mundo', inv:'Inventario', journal:'Bitácora', rest:'Descansar',
+    attack:'Atacar', skill:'Golpe de trueno', flee:'Huir', win:'Victoria', lose:'Caes…',
+    take:'Tomar ruta', back:'Volver', hp:'PV', gold:'Oro', runes:'Runas',
+    story0:'Los dioses callan. El Trono del Norte está vacío. Eres la última sangre de la línea de la tormenta. La redención no se regala: se conquista.',
+    dead:'Tu saga termina. El trono espera a otro.',
+    restok:'Descansas junto al fuego. Las heridas cierran. El viento sigue aullando.',
+  },
+  ar: {
+    newgame:'لعبة جديدة', cont:'متابعة', lang:'اللغة',
+    map:'خريطة العالم', inv:'المخزون', journal:'اليوميات', rest:'راحة',
+    attack:'هجوم', skill:'ضربة الرعد', flee:'انسحاب', win:'انتصار', lose:'سقطت…',
+    take:'اتخذ الطريق', back:'رجوع', hp:'صحة', gold:'ذهب', runes:'رونات',
+    story0:'الآلهة صامتة. عرش الشمال فارغ. أنت آخر دم سلالة العاصفة. الفداء لا يُمنح — يُنتزع.',
+    dead:'انتهت ملحمتك. العرش ينتظر غيرك.',
+    restok:'ترتاح عند النار. تلتئم الجراح. والريح ما زالت تعوي.',
+  }
+};
+
+// Locations (many screens via data)
+const LOCS = [
+  {id:'fjord', name:{en:'Black Fjord',es:'Fiordo Negro',ar:'الفيورد الأسود'}, desc:{en:'Ice water. Raven ships. The exile begins.',es:'Agua de hielo. Naves cuervo. Empieza el exilio.',ar:'ماء جليدي. سفن الغراب. يبدأ المنفى.'}, exits:['village','cave'], danger:0.2, enemy:null},
+  {id:'village', name:{en:'Ash Village',es:'Aldea de Ceniza',ar:'قرية الرماد'}, desc:{en:'Burned halls. A seer whispers of the empty throne.',es:'Salones quemados. Una vidente habla del trono vacío.',ar:'قاعات محروقة. عرافة تهمس عن العرش الفارغ.'}, exits:['fjord','forest','temple'], danger:0.15, enemy:null},
+  {id:'cave', name:{en:'Wolf Cave',es:'Cueva del Lobo',ar:'كهف الذئب'}, desc:{en:'Bones and iron. Something breathes in the dark.',es:'Huesos y hierro. Algo respira en la oscuridad.',ar:'عظام وحديد. شيء يتنفس في الظلام.'}, exits:['fjord','mine'], danger:0.55, enemy:'wolf'},
+  {id:'forest', name:{en:'Blood Forest',es:'Bosque de Sangre',ar:'غابة الدم'}, desc:{en:'Trees like spears. The path forks toward war.',es:'Árboles como lanzas. El camino se abre a la guerra.',ar:'أشجار كالرماح. الطريق يتفرع نحو الحرب.'}, exits:['village','ruins','swamp'], danger:0.4, enemy:'draugr'},
+  {id:'temple', name:{en:'Fallen Temple',es:'Templo Caído',ar:'المعبد الساقط'}, desc:{en:'Broken idols. Your name is carved in the stone — or someone else’s.',es:'Ídolos rotos. Tu nombre está en la piedra… o el de otro.',ar:'أصنام مكسورة. اسمك محفور في الحجر — أو اسم آخر.'}, exits:['village','peak'], danger:0.35, enemy:'priest'},
+  {id:'mine', name:{en:'Iron Mine',es:'Mina de Hierro',ar:'منجم الحديد'}, desc:{en:'Echoes of picks. A chained giant sleeps.',es:'Ecos de picos. Un gigante encadenado duerme.',ar:'أصداء المعاول. عملاق مقيد ينام.'}, exits:['cave','ruins'], danger:0.5, enemy:'troll'},
+  {id:'ruins', name:{en:'Jarl Ruins',es:'Ruinas del Jarl',ar:'أطلال الجارل'}, desc:{en:'A broken crown in the dust.',es:'Una corona rota en el polvo.',ar:'تاج مكسور في الغبار.'}, exits:['forest','mine','gate'], danger:0.45, enemy:'huscarl'},
+  {id:'swamp', name:{en:'Hel Swamp',es:'Pantano de Hel',ar:'مستنقع هيل'}, desc:{en:'Mist that remembers the dead.',es:'Niebla que recuerda a los muertos.',ar:'ضباب يتذكر الموتى.'}, exits:['forest','gate'], danger:0.6, enemy:'wraith'},
+  {id:'peak', name:{en:'Storm Peak',es:'Cima de la Tormenta',ar:'قمة العاصفة'}, desc:{en:'Lightning without sky-gods. Only you.',es:'Rayos sin dioses del cielo. Solo tú.',ar:'برق بلا آلهة سماء. أنت فقط.'}, exits:['temple','gate'], danger:0.5, enemy:'elemental'},
+  {id:'gate', name:{en:'Throne Gate',es:'Puerta del Trono',ar:'بوابة العرش'}, desc:{en:'Two statues. One holds a sword. One holds a chain.',es:'Dos estatuas. Una con espada. Otra con cadena.',ar:'تمثالان. أحدهما يحمل سيفاً. والآخر سلسلة.'}, exits:['ruins','swamp','peak','throne'], danger:0.7, enemy:'guardian'},
+  {id:'throne', name:{en:'The Empty Throne',es:'El Trono Vacío',ar:'العرش الفارغ'}, desc:{en:'Redemption: sit, or shatter it. The saga ends when you choose.',es:'Redención: siéntate o rómpelo. La saga termina cuando eliges.',ar:'الفداء: اجلس أو حطّمه. الملحمة تنتهي حين تختار.'}, exits:['gate'], danger:0, enemy:'shadow_king', final:true}
+];
+
+const ENEMIES = {
+  wolf:{name:{en:'Ice Wolf',es:'Lobo de Hielo',ar:'ذئب الجليد'}, hp:30, atk:8},
+  draugr:{name:{en:'Draugr',es:'Draugr',ar:'دراوغر'}, hp:45, atk:12},
+  priest:{name:{en:'Silent Priest',es:'Sacerdote Silente',ar:'كاهن صامت'}, hp:40, atk:10},
+  troll:{name:{en:'Mine Troll',es:'Trol de la Mina',ar:'ترول المنجم'}, hp:70, atk:14},
+  huscarl:{name:{en:'Fallen Huscarl',es:'Huscarl Caído',ar:'حارس ساقط'}, hp:55, atk:13},
+  wraith:{name:{en:'Swamp Wraith',es:'Espectro del Pantano',ar:'شبح المستنقع'}, hp:50, atk:15},
+  elemental:{name:{en:'Storm Wight',es:'Ente de Tormenta',ar:'روح العاصفة'}, hp:60, atk:16},
+  guardian:{name:{en:'Gate Guardian',es:'Guardián de la Puerta',ar:'حارس البوابة'}, hp:80, atk:18},
+  shadow_king:{name:{en:'Shadow on the Throne',es:'Sombra en el Trono',ar:'الظل على العرش'}, hp:120, atk:22}
+};
+
+const KEY='nordic_throne_v1';
+const ST = {
+  screen:'title', lang:'en',
+  hp:100, hpMax:100, gold:10, runes:0,
+  loc:'fjord', inv:['Rusty Axe'],
+  log:[], flags:{}, battle:null, ending:null
+};
+
+function t(k){return (L[ST.lang]&&L[ST.lang][k])||L.en[k]||k;}
+function locName(id){const Lx=LOCS.find(x=>x.id===id);return Lx?Lx.name[ST.lang]||Lx.name.en:id;}
+function locDesc(id){const Lx=LOCS.find(x=>x.id===id);return Lx?Lx.desc[ST.lang]||Lx.desc.en:'';}
+function enName(id){const e=ENEMIES[id];return e?(e.name[ST.lang]||e.name.en):id;}
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify({
+  lang:ST.lang,hp:ST.hp,hpMax:ST.hpMax,gold:ST.gold,runes:ST.runes,loc:ST.loc,inv:ST.inv,flags:ST.flags,log:ST.log.slice(-40)
+}));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');Object.assign(ST,s);if(!ST.inv)ST.inv=['Rusty Axe'];}catch(e){}}
+function pushLog(m){ST.log.push(m);if(ST.log.length>50)ST.log.shift();}
+
+const $=id=>document.getElementById(id);
+const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n;};
+
+function hud(){
+  const f=$('hpFill'); if(f)f.style.width=Math.max(0,Math.round(100*ST.hp/ST.hpMax))+'%';
+  const h=$('hud'); if(h)h.textContent=ST.hp+'/'+ST.hpMax;
+}
+
+function startBattle(eid){
+  const e=ENEMIES[eid]; if(!e)return;
+  ST.battle={id:eid, hp:e.hp, max:e.hp, atk:e.atk};
+  ST.screen='battle'; render();
+}
+
+function doAttack(skill){
+  if(!ST.battle)return;
+  const dmg=skill?(12+Math.floor(Math.random()*10)+ST.runes):(6+Math.floor(Math.random()*8));
+  ST.battle.hp-=dmg;
+  pushLog((skill?'⚡ ':'⚔ ')+dmg);
+  if(ST.battle.hp<=0){
+    const g=5+Math.floor(Math.random()*12);
+    ST.gold+=g; ST.runes+=skill?2:1;
+    pushLog(t('win')+' +'+g+' '+t('gold'));
+    if(ST.battle.id==='shadow_king'){ST.ending='throne'; ST.flags.boss=1;}
+    ST.battle=null; ST.screen='loc'; save(); render(); return;
+  }
+  const ed=ST.battle.atk-Math.floor(Math.random()*4);
+  ST.hp-=Math.max(1,ed);
+  pushLog('💥 -'+Math.max(1,ed));
+  if(ST.hp<=0){ST.hp=0;ST.battle=null;ST.screen='dead'; save(); render(); return;}
+  save(); render();
+}
+
+function render(){
+  hud();
+  const m=$('main'); m.innerHTML='';
+  $('foot').textContent='NORDIC THRONE · '+ (ST.lang||'en').toUpperCase() +' · '+locName(ST.loc);
+
+  if(ST.screen==='title'){
+    const p=el('div','panel title-screen');
+    p.innerHTML='<div class="rune">ᚾ ᛟ ᚱ ᛞ</div>';
+    p.appendChild(el('h1',null,'NORDIC THRONE'));
+    p.appendChild(el('p','muted',t('story0')));
+    const lang=el('div','lang');
+    [['en','EN'],['es','ES'],['ar','ع']].forEach(([c,l])=>{
+      const b=document.createElement('button'); b.textContent=l; if(ST.lang===c)b.className='on';
+      b.onclick=()=>{ST.lang=c;render();}; lang.appendChild(b);
+    });
+    p.appendChild(el('p','muted',t('lang'))); p.appendChild(lang);
+    const ng=el('button','btn',t('newgame'));
+    ng.onclick=()=>{
+      Object.assign(ST,{hp:100,hpMax:100,gold:10,runes:0,loc:'fjord',inv:['Rusty Axe'],log:[],flags:{},battle:null,ending:null,screen:'loc'});
+      pushLog('Saga starts · '+locName('fjord')); save(); render();
+    };
+    const cg=el('button','btn sec',t('cont'));
+    cg.onclick=()=>{load(); ST.screen=ST.hp<=0?'dead':'loc'; render();};
+    p.appendChild(ng); p.appendChild(cg);
+    m.appendChild(p);
+    return;
+  }
+
+  if(ST.screen==='dead'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,t('lose')));
+    p.appendChild(el('p','story',t('dead')));
+    const b=el('button','btn',t('newgame'));
+    b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='ending'){
+    const p=el('div','panel');
+    p.appendChild(el('h1',null,locName('throne')));
+    p.appendChild(el('p','story',ST.ending==='sit'
+      ? ({en:'You sit. The hall accepts a mortal crown. Redemption is rule.',es:'Te sientas. El salón acepta una corona mortal. Redención es gobernar.',ar:'تجلس. القاعة تقبل تاجاً بشرياً. الفداء هو الحكم.'})[ST.lang]
+      : ({en:'You shatter the throne. No more kings. The north is wind again.',es:'Haces trizas el trono. No más reyes. El norte vuelve a ser viento.',ar:'تحطم العرش. لا ملوك بعد الآن. الشمال ريح من جديد.'})[ST.lang]
+    ));
+    const b=el('button','btn sec',t('newgame'));
+    b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='battle'&&ST.battle){
+    const p=el('div','panel');
+    const e=ST.battle;
+    const box=el('div','enemy');
+    box.innerHTML='<div class="name">'+enName(e.id)+'</div><div class="bar"><i style="width:'+Math.max(0,100*e.hp/e.max)+'%"></i></div><div class="muted">'+e.hp+'/'+e.max+'</div>';
+    p.appendChild(box);
+    const log=el('div','log'); log.textContent=ST.log.slice(-8).join('\n'); p.appendChild(log);
+    const row=el('div','row');
+    const a=el('button','btn',t('attack')); a.onclick=()=>doAttack(false);
+    const s=el('button','btn ice',t('skill')); s.onclick=()=>doAttack(true);
+    const f=el('button','btn sec',t('flee')); f.onclick=()=>{ST.battle=null;ST.hp=Math.max(1,ST.hp-5);ST.screen='loc';save();render();};
+    row.appendChild(a); row.appendChild(s); p.appendChild(row); p.appendChild(f);
+    m.appendChild(p); return;
+  }
+
+  if(ST.screen==='inv'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,t('inv')));
+    const inv=el('div','inv');
+    ST.inv.forEach(i=>{const c=el('span','chip',i);inv.appendChild(c);});
+    inv.appendChild(el('span','chip gold',t('gold')+': '+ST.gold));
+    inv.appendChild(el('span','chip gold',t('runes')+': '+ST.runes));
+    p.appendChild(inv);
+    const b=el('button','btn sec',t('back')); b.onclick=()=>{ST.screen='loc';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='journal'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,t('journal')));
+    p.appendChild(el('div','log')).textContent=ST.log.slice(-20).join('\n')||'…';
+    const b=el('button','btn sec',t('back')); b.onclick=()=>{ST.screen='loc';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  // Location screen
+  const loc=LOCS.find(x=>x.id===ST.loc)||LOCS[0];
+  const p=el('div','panel');
+  p.appendChild(el('h2',null,locName(ST.loc)));
+  const d=el('div','loc'); d.appendChild(el('p','story',locDesc(ST.loc))); p.appendChild(d);
+
+  if(loc.final && !ST.flags.boss){
+    const fight=el('button','btn',enName('shadow_king'));
+    fight.onclick=()=>startBattle('shadow_king');
+    p.appendChild(fight);
+  } else if(loc.final && ST.flags.boss){
+    const sit=el('button','btn ok',({en:'Sit the Throne',es:'Sentarse en el Trono',ar:'اجلس على العرش'})[ST.lang]);
+    const brk=el('button','btn',({en:'Shatter the Throne',es:'Destrozar el Trono',ar:'حطّم العرش'})[ST.lang]);
+    sit.onclick=()=>{ST.ending='sit';ST.screen='ending';save();render();};
+    brk.onclick=()=>{ST.ending='break';ST.screen='ending';save();render();};
+    p.appendChild(sit); p.appendChild(brk);
+  }
+
+  p.appendChild(el('p','muted',t('map')));
+  const g=el('div','grid');
+  (loc.exits||[]).forEach(ex=>{
+    const c=el('div','card');
+    c.innerHTML='<strong>'+locName(ex)+'</strong><div class="sub">'+t('take')+'</div>';
+    c.onclick=()=>{
+      const dest=LOCS.find(x=>x.id===ex);
+      ST.loc=ex;
+      pushLog('→ '+locName(ex));
+      if(dest && dest.enemy && Math.random()< (dest.danger||0.4)){
+        startBattle(dest.enemy); return;
+      }
+      save(); render();
+    };
+    g.appendChild(c);
+  });
+  p.appendChild(g);
+
+  const row=el('div','row');
+  const bi=el('button','btn sec',t('inv')); bi.onclick=()=>{ST.screen='inv';render();};
+  const bj=el('button','btn sec',t('journal')); bj.onclick=()=>{ST.screen='journal';render();};
+  const br=el('button','btn ok',t('rest')); br.onclick=()=>{ST.hp=Math.min(ST.hpMax,ST.hp+25);pushLog(t('restok'));save();render();};
+  row.appendChild(bi); row.appendChild(bj); p.appendChild(row); p.appendChild(br);
+
+  // explore fight chance button
+  if(loc.enemy && !loc.final){
+    const hunt=el('button','btn',({en:'Search / Hunt',es:'Buscar / Cazar',ar:'بحث / صيد'})[ST.lang]);
+    hunt.onclick=()=>startBattle(loc.enemy);
+    p.appendChild(hunt);
+  }
+  m.appendChild(p);
+}
+
+load();
+render();
+</script>
+</body>
+</html>

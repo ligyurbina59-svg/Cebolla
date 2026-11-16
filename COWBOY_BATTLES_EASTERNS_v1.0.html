@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a0f0a">
+<title>COWBOY BATTLES · Easterns</title>
+<style>
+:root{--bg:#1a0f0a;--p:#2a1810;--line:#5c3d2e;--dust:#c4a574;--sun:#e8a838;--blood:#b91c1c;--east:#4ade80;--t:#f5e6d3;--m:#a89070}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+.hdr{padding:10px 12px;background:linear-gradient(180deg,#3d2317,#1a0f0a);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900;letter-spacing:1px;font-size:12px;color:var(--sun)}
+.brand span{color:var(--dust)}
+.stat{font-size:10px;color:var(--m)}
+main{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+.panel{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px}
+h1{margin:0 0 6px;font-size:20px;color:var(--sun);text-align:center}
+h2{margin:0 0 8px;font-size:14px;color:var(--dust)}
+.muted{color:var(--m);font-size:11px;line-height:1.45}
+.story{font-size:13px;line-height:1.5;margin:8px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#1a0f0a;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;cursor:pointer}
+.card:active{border-color:var(--sun);transform:scale(.98)}
+.card strong{display:block;font-size:12px;color:var(--sun)}
+.card .sub{font-size:10px;color:var(--m);margin-top:4px}
+button.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:800;margin:4px 0;background:linear-gradient(135deg,#b45309,#92400e);color:#fff}
+button.btn.sec{background:#3d2317;border:1px solid var(--line);color:var(--t);font-weight:600}
+button.btn.east{background:linear-gradient(135deg,#166534,#14532d);color:#dcfce7}
+button.btn.gun{background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff}
+.row{display:flex;gap:6px}.row .btn{flex:1}
+.bar{height:10px;background:#3d2317;border-radius:6px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#b91c1c,#ef4444)}
+.bar.xp i{background:linear-gradient(90deg,#e8a838,#fbbf24)}
+.enemy{text-align:center;padding:12px;background:#2a1210;border:1px solid #7f1d1d;border-radius:12px;margin:8px 0}
+.enemy .name{font-size:16px;font-weight:900;color:#fca5a5}
+.log{font-size:11px;background:#1a0f0a;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:100px;overflow:auto;white-space:pre-wrap;color:#d4b896}
+.dim{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.dim span{padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:9px;color:var(--m)}
+.dim span.on{border-color:var(--sun);color:var(--sun)}
+.dim span.east{border-color:var(--east);color:var(--east)}
+footer{font-size:9px;text-align:center;color:var(--m);padding:6px;border-top:1px solid var(--line)}
+.title{text-align:center;padding:16px 8px}
+.title .ico{font-size:40px;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="brand">COWBOY <span>BATTLES</span></div>
+    <div class="stat" id="hud">—</div>
+  </div>
+  <main id="main"></main>
+  <footer>Western × Eastern · 5D/7D capas · MN24</footer>
+</div>
+<script>
+const KEY='mn24_cowboy_battles_v1';
+const STYLES={
+  cowboy:{name:'Cowboy',skill:'Revolver',bonus:1.1},
+  ronin:{name:'Ronin Eastern',skill:'Katana',bonus:1.15},
+  outlaw:{name:'Outlaw',skill:'Dinamita',bonus:1.05},
+  monk:{name:'Eastern Monk',skill:'Chi Strike',bonus:1.2}
+};
+const LOCS={
+  saloon:{n:'Saloon Dusty',d:'Whiskey, cartas y miradas. El duelo empieza aquí.',ex:['street','desert']},
+  street:{n:'Calle del Pueblo',d:'Polvo y balas. Western clásico.',ex:['saloon','ranch','dojo']},
+  desert:{n:'Desierto Rojo',d:'Nadie oye el eco de dos estilos de pelea.',ex:['saloon','canyon']},
+  ranch:{n:'Rancho Frontera',d:'Donde el este encuentra el oeste.',ex:['street','dojo','temple']},
+  dojo:{n:'Dojo del Cañón',d:'Eastern arts bajo el sol del far west.',ex:['street','ranch','temple']},
+  canyon:{n:'Cañón de los Siete',d:'Siete capas de polvo. Siete duelos.',ex:['desert','final']},
+  temple:{n:'Templo del Viento',d:'Incienso y cartuchos vacíos.',ex:['ranch','dojo','final']},
+  final:{n:'Plaza del Eclipse',d:'Cowboy vs Eastern · el duelo 7D.',ex:['canyon','temple'],boss:1}
+};
+const FOES=[
+  {id:'bandit',n:'Bandido del Dust',hp:32,atk:8,style:'west'},
+  {id:'gunner',n:'Pistolero Rival',hp:45,atk:12,style:'west'},
+  {id:'ashigaru',n:'Ashigaru Errante',hp:40,atk:11,style:'east'},
+  {id:'bounty',n:'Cazarrecompensas',hp:55,atk:14,style:'west'},
+  {id:'kenshi',n:'Kenshi del Desierto',hp:60,atk:15,style:'east'},
+  {id:'legend',n:'Leyenda del Eclipse',hp:100,atk:20,style:'both'}
+];
+const DIMS=['1D Cuerpo','2D Arena','3D Espacio','4D Tiempo','5D Estilo','6D Honor','7D Leyenda'];
+
+const ST={
+  screen:'title', style:null,
+  hp:100, hpMax:100, ammo:12, chi:5, gold:10, honor:0, layer:1,
+  loc:'saloon', log:[], battle:null, wins:0
+};
+function load(){try{Object.assign(ST,JSON.parse(localStorage.getItem(KEY)||'{}'));if(!ST.log)ST.log=[];}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({
+  style:ST.style,hp:ST.hp,hpMax:ST.hpMax,ammo:ST.ammo,chi:ST.chi,gold:ST.gold,honor:ST.honor,
+  layer:ST.layer,loc:ST.loc,log:ST.log.slice(-40),wins:ST.wins
+}));}catch(e){}}
+function push(m){ST.log.push(m);if(ST.log.length>50)ST.log.shift();}
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
+function hud(){
+  const h=$('hud');
+  if(h)h.textContent='HP '+ST.hp+' · 🔫'+ST.ammo+' · χ'+ST.chi+' · L'+ST.layer+'/7';
+}
+
+function startBattle(f){
+  ST.battle={...f, max:f.hp};
+  ST.screen='battle'; render();
+}
+function hit(kind){
+  if(!ST.battle)return;
+  const st=STYLES[ST.style]||STYLES.cowboy;
+  let dmg=0;
+  if(kind==='gun'){
+    if(ST.ammo<=0){push('Sin balas');render();return;}
+    ST.ammo--; dmg=Math.floor((10+Math.random()*8)*st.bonus);
+    push('🔫 Revolver '+dmg);
+  } else if(kind==='blade'){
+    dmg=Math.floor((9+Math.random()*10)*st.bonus);
+    if(ST.style==='ronin'||ST.style==='monk')dmg=Math.floor(dmg*1.1);
+    push('⚔ Hoja '+dmg);
+  } else {
+    if(ST.chi<=0){push('Sin chi');render();return;}
+    ST.chi--; dmg=Math.floor((14+Math.random()*10)*st.bonus);
+    push('✦ Técnica '+dmg);
+  }
+  ST.battle.hp-=dmg;
+  if(ST.battle.hp<=0){
+    ST.wins++; ST.gold+=8+Math.floor(ST.battle.max/5); ST.honor+=2;
+    if(ST.wins%2===0)ST.layer=Math.min(7,ST.layer+1);
+    ST.ammo=Math.min(18,ST.ammo+3); ST.chi=Math.min(10,ST.chi+2);
+    push('Victoria · Capa '+ST.layer+'/7');
+    if(ST.battle.id==='legend'){ST.screen='ending';}
+    else {ST.battle=null;ST.screen='loc';}
+    save(); render(); return;
+  }
+  const ed=Math.max(1,ST.battle.atk-Math.floor(Math.random()*4)-Math.floor(ST.layer/3));
+  ST.hp-=ed; push('💥 -'+ed);
+  if(ST.hp<=0){ST.hp=0;ST.battle=null;ST.screen='dead';save();render();return;}
+  save(); render();
+}
+
+function render(){
+  hud();
+  const m=$('main'); m.innerHTML='';
+
+  if(ST.screen==='title'){
+    const p=el('div','panel title');
+    p.innerHTML='<div class="ico">🤠 ⚔️ 🧧</div>';
+    p.appendChild(el('h1',null,'COWBOY BATTLES'));
+    p.appendChild(el('p','muted','Western × Easterns · duelos en 5D/7D (capas de progresión, no motor AAA)'));
+    p.appendChild(el('p','story','Polvo, honor y dos tradiciones de combate. Elige estilo y camina hasta la Plaza del Eclipse.'));
+    const ng=el('button','btn','Nuevo duelo');
+    ng.onclick=()=>{Object.assign(ST,{screen:'style',style:null,hp:100,hpMax:100,ammo:12,chi:5,gold:10,honor:0,layer:1,loc:'saloon',log:[],battle:null,wins:0});push('El sol cae sobre Dust Town');save();render();};
+    const cg=el('button','btn sec','Continuar');
+    cg.onclick=()=>{load();ST.screen=!ST.style?'style':(ST.hp<=0?'dead':'loc');render();};
+    p.appendChild(ng); p.appendChild(cg); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='style'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Estilo de combate'));
+    const g=el('div','grid');
+    Object.keys(STYLES).forEach(id=>{
+      const s=STYLES[id];
+      const c=el('div','card');
+      c.innerHTML='<strong>'+s.name+'</strong><div class="sub">'+s.skill+'</div>';
+      c.onclick=()=>{ST.style=id;push('Estilo: '+s.name);ST.screen='loc';save();render();};
+      g.appendChild(c);
+    });
+    p.appendChild(g); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='dead'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Caíste en el polvo'));
+    p.appendChild(el('p','story','Honor '+ST.honor+' · Capas '+ST.layer+'/7. El este y el oeste siguen girando.'));
+    const b=el('button','btn','Volver al saloon'); b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='ending'){
+    const p=el('div','panel');
+    p.appendChild(el('h1',null,'Eclipse'));
+    p.appendChild(el('p','story','Derrotaste a la Leyenda. Cowboy y Eastern no son opuestos: son dos caras del mismo duelo. Capa 7D alcanzada en metáfora de progresión.'));
+    p.appendChild(el('p','muted','Wins '+ST.wins+' · Honor '+ST.honor+' · Oro '+ST.gold));
+    const b=el('button','btn','Nueva leyenda'); b.onclick=()=>{ST.screen='title';render();};
+    p.appendChild(b); m.appendChild(p); return;
+  }
+
+  if(ST.screen==='battle'&&ST.battle){
+    const p=el('div','panel');
+    const e=ST.battle;
+    const box=el('div','enemy');
+    box.innerHTML='<div class="name">'+e.n+'</div><div class="bar"><i style="width:'+Math.max(0,100*e.hp/e.max)+'%"></i></div><div class="muted">'+Math.max(0,e.hp|0)+'/'+e.max+' · '+e.style+'</div>';
+    p.appendChild(box);
+    p.appendChild(el('div','log')).textContent=ST.log.slice(-8).join('\n');
+    const row=el('div','row');
+    const g=el('button','btn gun','🔫 Fuego'); g.onclick=()=>hit('gun');
+    const b=el('button','btn east','⚔ Hoja'); b.onclick=()=>hit('blade');
+    row.appendChild(g); row.appendChild(b); p.appendChild(row);
+    const t=el('button','btn','✦ Técnica (chi)'); t.onclick=()=>hit('tech');
+    const f=el('button','btn sec','Huir'); f.onclick=()=>{ST.battle=null;ST.hp=Math.max(1,ST.hp-8);ST.screen='loc';save();render();};
+    p.appendChild(t); p.appendChild(f); m.appendChild(p); return;
+  }
+
+  // LOC
+  const loc=LOCS[ST.loc]||LOCS.saloon;
+  const p=el('div','panel');
+  p.appendChild(el('h2',null,loc.n));
+  const bar=el('div','bar'); bar.innerHTML='<i style="width:'+Math.max(0,100*ST.hp/ST.hpMax)+'%"></i>'; p.appendChild(bar);
+  const xp=el('div','bar xp'); xp.innerHTML='<i style="width:'+Math.round(100*ST.layer/7)+'%"></i>'; p.appendChild(xp);
+  p.appendChild(el('p','muted','Capa 5D/7D: '+ST.layer+'/7 · Honor '+ST.honor+' · '+(STYLES[ST.style]?STYLES[ST.style].name:'')));
+  const dim=el('div','dim');
+  DIMS.forEach((d,i)=>{
+    const s=document.createElement('span'); s.textContent=d;
+    if(i<ST.layer)s.className='on';
+    if(i>=4)s.classList.add('east');
+    dim.appendChild(s);
+  });
+  p.appendChild(dim);
+  p.appendChild(el('p','story',loc.d));
+
+  if(loc.boss){
+    const boss=el('button','btn gun','Duelo final · Leyenda del Eclipse');
+    boss.onclick=()=>startBattle(FOES[5]);
+    p.appendChild(boss);
+  }
+
+  const g=el('div','grid');
+  (loc.ex||[]).forEach(id=>{
+    const L=LOCS[id]; if(!L)return;
+    const c=el('div','card');
+    c.innerHTML='<strong>'+L.n+'</strong><div class="sub">cabalgar</div>';
+    c.onclick=()=>{
+      ST.loc=id; push('→ '+L.n);
+      if(!L.boss && Math.random()<0.42){
+        const idx=Math.min(4,Math.floor(Math.random()*3)+Math.floor(ST.layer/3));
+        startBattle({...FOES[idx]}); return;
+      }
+      save(); render();
+    };
+    g.appendChild(c);
+  });
+  p.appendChild(g);
+
+  const row=el('div','row');
+  const rest=el('button','btn sec','Campamento');
+  rest.onclick=()=>{ST.hp=Math.min(ST.hpMax,ST.hp+20);ST.ammo=Math.min(18,ST.ammo+2);ST.chi=Math.min(10,ST.chi+1);push('Descanso · balas y chi');save();render();};
+  const shop=el('button','btn sec','Munición (5g)');
+  shop.onclick=()=>{if(ST.gold<5){push('Sin oro');return;}ST.gold-=5;ST.ammo=Math.min(18,ST.ammo+6);push('+6 balas');save();render();};
+  row.appendChild(rest); row.appendChild(shop); p.appendChild(row);
+  const home=el('button','btn sec','Menú'); home.onclick=()=>{ST.screen='title';render();};
+  p.appendChild(home);
+  p.appendChild(el('div','log')).textContent=ST.log.slice(-6).join('\n')||'…';
+  m.appendChild(p);
+}
+
+load();
+render();
+</script>
+</body>
+</html>

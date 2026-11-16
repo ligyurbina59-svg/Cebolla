@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a12">
+<title>MN24 Reality Frame</title>
+<style>
+:root{--bg:#0a0a12;--p:#12121c;--line:#2a2a3d;--live:#ef4444;--c:#7dd3fc;--g:#34d399;--t:#f1f5f9;--m:#94a3b8;--w:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font:12px/1.4 system-ui,sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+.hdr{padding:10px 12px;background:linear-gradient(180deg,#1a1020,#0a0a12);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900;letter-spacing:1px;font-size:13px}
+.brand span{color:var(--live)}.brand em{color:var(--c);font-style:normal;font-weight:700}
+.badge{font-size:9px;padding:3px 8px;border-radius:999px;border:1px solid var(--live);color:var(--live);font-weight:800}
+.badge.off{border-color:var(--m);color:var(--m)}
+.warn{font-size:9px;color:#fde68a;background:#1c1408;border:1px solid #a16207;border-radius:8px;padding:6px 10px;margin:0;line-height:1.35}
+.tabs{display:flex;gap:2px;overflow-x:auto;padding:6px;border-bottom:1px solid var(--line)}
+.tabs button{flex:0 0 auto;padding:7px 10px;border-radius:11px;border:1px solid var(--line);background:var(--p);color:var(--t);font-size:10px;font-weight:600}
+.tabs button.on{border-color:var(--live);color:#fecaca;background:#1c0a0a}
+main{flex:1;overflow-y:auto;padding:8px 10px 12px;-webkit-overflow-scrolling:touch}
+.panel{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+h2{margin:0 0 6px;font-size:13px;color:var(--c)}
+.muted{color:var(--m);font-size:10px;line-height:1.4}
+.stage{position:relative;width:100%;aspect-ratio:3/4;max-height:52vh;background:#000;border-radius:12px;overflow:hidden;border:2px solid #333}
+.stage video,.stage canvas{width:100%;height:100%;object-fit:cover;display:block}
+.overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:10px}
+.ov-top{display:flex;justify-content:space-between;align-items:flex-start}
+.live-pill{background:var(--live);color:#fff;font-weight:900;font-size:10px;padding:4px 8px;border-radius:4px;letter-spacing:1px}
+.aud{background:rgba(0,0,0,.55);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.ov-bot{display:flex;justify-content:space-between;align-items:flex-end}
+.ep{background:rgba(0,0,0,.6);padding:6px 10px;border-radius:8px;max-width:70%}
+.ep strong{display:block;font-size:11px}.ep span{font-size:9px;color:#cbd5e1}
+.clock{font-family:ui-monospace,monospace;font-size:11px;background:rgba(0,0,0,.5);padding:4px 8px;border-radius:6px}
+.row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+button.btn{flex:1;min-width:80px;padding:11px;border:0;border-radius:10px;font-weight:800;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff}
+button.btn.sec{background:#1e293b;border:1px solid var(--line);color:var(--t);font-weight:600}
+button.btn.ok{background:linear-gradient(135deg,#34d399,#059669);color:#031016}
+button.btn:disabled{opacity:.45}
+input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a0a12;color:var(--t);margin:4px 0;font:inherit}
+.item{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px}
+.item:last-child{border-bottom:0}
+.tag{font-size:8px;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--m)}
+.tag.ok{border-color:var(--g);color:var(--g)}.tag.sim{border-color:var(--w);color:var(--w)}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.gallery img,.gallery video{width:100%;border-radius:8px;background:#000;aspect-ratio:1;object-fit:cover}
+.log{font-family:ui-monospace,monospace;font-size:9px;background:#0a0a12;border:1px solid var(--line);border-radius:8px;padding:8px;max-height:80px;overflow:auto;color:#94a3b8;white-space:pre-wrap}
+footer{font-size:8px;text-align:center;color:var(--m);padding:4px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="brand"><span>LIVE</span> <em>MN24 FRAME</em></div>
+    <div id="liveBadge" class="badge off">STANDBY</div>
+  </div>
+  <p class="warn" style="margin:6px 10px 0">Producción propia / simulación. No es vigilancia de terceros. Solo cámara local y archivos en este dispositivo.</p>
+  <div class="tabs" id="tabs">
+    <button class="on" data-v="live">Directo</button>
+    <button data-v="ep">Episodio</button>
+    <button data-v="gallery">Galería</button>
+    <button data-v="notes">Notas</button>
+    <button data-v="about">Estado</button>
+  </div>
+  <main id="main"></main>
+  <footer>MN24 Reality Frame · Truman Lens creativo</footer>
+</div>
+<script>
+const KEY='mn24_reality_frame_v1';
+const ST={
+  v:'live', live:false, facing:'user',
+  epTitle:'Episodio 1 · Mañana', epSub:'Producción propia',
+  aud:1284, stream:null, rec:null, chunks:[],
+  media:[], notes:'', log:[]
+};
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||'{}');
+    if(s.epTitle)ST.epTitle=s.epTitle;
+    if(s.epSub)ST.epSub=s.epSub;
+    if(s.notes!=null)ST.notes=s.notes;
+    if(s.media)ST.media=s.media.slice(-24);
+  }catch(e){}
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify({
+    epTitle:ST.epTitle, epSub:ST.epSub, notes:String(ST.notes||'').slice(0,4000),
+    media:ST.media.slice(-24)
+  }));}catch(e){}
+}
+load();
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n};
+const now=()=>new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const log=m=>{ST.log.push(now()+' · '+m);if(ST.log.length>30)ST.log.shift()};
+
+function setBadge(){
+  const b=$('liveBadge');
+  if(!b)return;
+  b.textContent=ST.live?'● EN VIVO':'STANDBY';
+  b.className='badge'+(ST.live?'':' off');
+}
+
+async function startCam(video){
+  stopCam();
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:ST.facing, width:{ideal:1280}, height:{ideal:720}},
+      audio:true
+    });
+    ST.stream=stream;
+    if(video){video.srcObject=stream; await video.play();}
+    log('Cámara OK · '+ST.facing);
+    return true;
+  }catch(e){
+    log('Cámara: '+e.message);
+    alert('Permiso de cámara/micrófono necesario. Actívalo en Ajustes de la app.');
+    return false;
+  }
+}
+function stopCam(){
+  if(ST.rec && ST.rec.state!=='inactive'){try{ST.rec.stop();}catch(e){}}
+  ST.rec=null; ST.chunks=[];
+  if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop()); ST.stream=null;}
+  ST.live=false; setBadge();
+}
+
+function snapPhoto(video){
+  if(!video || !ST.stream){alert('Inicia la cámara primero');return;}
+  const c=document.createElement('canvas');
+  c.width=video.videoWidth||720; c.height=video.videoHeight||960;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(video,0,0,c.width,c.height);
+  // burn overlay text
+  ctx.fillStyle='rgba(0,0,0,0.45)';
+  ctx.fillRect(0,0,c.width,48);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 22px system-ui';
+  ctx.fillText('LIVE · '+ST.epTitle.slice(0,28), 12, 32);
+  const data=c.toDataURL('image/jpeg',0.85);
+  ST.media.unshift({type:'photo', data, when:now(), ep:ST.epTitle});
+  save(); log('Foto capturada');
+  alert('Foto guardada en Galería (local)');
+}
+
+function toggleRec(video){
+  if(!ST.stream){alert('Inicia la cámara primero');return;}
+  if(ST.rec && ST.rec.state==='recording'){
+    ST.rec.stop(); return;
+  }
+  ST.chunks=[];
+  try{
+    const rec=new MediaRecorder(ST.stream,{mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'video/webm'});
+    ST.rec=rec;
+    rec.ondataavailable=e=>{if(e.data && e.data.size)ST.chunks.push(e.data);};
+    rec.onstop=()=>{
+      const blob=new Blob(ST.chunks,{type:'video/webm'});
+      const url=URL.createObjectURL(blob);
+      ST.media.unshift({type:'video', data:url, when:now(), ep:ST.epTitle});
+      save(); log('Vídeo guardado');
+      ST.live=false; setBadge();
+      const btn=$('recBtn'); if(btn)btn.textContent='Grabar vídeo';
+    };
+    rec.start(200);
+    ST.live=true; setBadge();
+    const btn=$('recBtn'); if(btn)btn.textContent='Detener grabación';
+    log('Grabación iniciada');
+  }catch(e){
+    log('Rec: '+e.message);
+    alert('Grabación no disponible en este dispositivo: '+e.message);
+  }
+}
+
+function render(){
+  [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.v===ST.v));
+  const m=$('main'); m.innerHTML='';
+  setBadge();
+
+  if(ST.v==='live'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Directo / marco de show'));
+    const stage=el('div','stage');
+    const video=document.createElement('video');
+    video.setAttribute('playsinline',''); video.setAttribute('autoplay',''); video.muted=true;
+    stage.appendChild(video);
+    const ov=el('div','overlay');
+    ov.innerHTML=
+      '<div class="ov-top"><div class="live-pill">'+(ST.live?'● EN VIVO':'STANDBY')+'</div><div class="aud">👁 <span id="audN">'+ST.aud+'</span></div></div>'+
+      '<div class="ov-bot"><div class="ep"><strong id="epT"></strong><span id="epS"></span></div><div class="clock" id="clk">--:--:--</div></div>';
+    stage.appendChild(ov);
+    p.appendChild(stage);
+    ov.querySelector('#epT').textContent=ST.epTitle;
+    ov.querySelector('#epS').textContent=ST.epSub;
+
+    const row=el('div','row');
+    const bCam=el('button','btn sec','Abrir cámara');
+    const bFlip=el('button','btn sec','Flip');
+    const bPhoto=el('button','btn ok','Foto');
+    const bRec=el('button','btn','Grabar vídeo'); bRec.id='recBtn';
+    bCam.onclick=async()=>{await startCam(video);};
+    bFlip.onclick=async()=>{ST.facing=ST.facing==='user'?'environment':'user'; await startCam(video);};
+    bPhoto.onclick=()=>snapPhoto(video);
+    bRec.onclick=()=>toggleRec(video);
+    row.appendChild(bCam); row.appendChild(bFlip); row.appendChild(bPhoto); row.appendChild(bRec);
+    p.appendChild(row);
+    p.appendChild(el('p','muted','La “audiencia” es un contador simulado. El vídeo/foto queda en el teléfono.'));
+    m.appendChild(p);
+
+    // audience tick + clock
+    const tick=()=>{
+      const c=$('clk'); if(c)c.textContent=now();
+      if(ST.live){ST.aud+=Math.floor(Math.random()*7)-2; if(ST.aud<200)ST.aud=200;}
+      const a=$('audN'); if(a)a.textContent=ST.aud;
+      const pill=ov.querySelector('.live-pill');
+      if(pill)pill.textContent=ST.live?'● EN VIVO':'STANDBY';
+    };
+    tick();
+    if(window._rfInt)clearInterval(window._rfInt);
+    window._rfInt=setInterval(tick,1000);
+  }
+
+  else if(ST.v==='ep'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Episodio'));
+    p.appendChild(el('p','muted','Título y subtítulo del “capítulo” de tu show.'));
+    const t=document.createElement('input'); t.value=ST.epTitle; t.placeholder='Título del episodio';
+    const s=document.createElement('input'); s.value=ST.epSub; s.placeholder='Subtítulo';
+    const presets=['Episodio 1 · Mañana','Día laboral','Fin de semana','La ciudad','Ensayo · realidad percibida'];
+    const sel=document.createElement('select');
+    presets.forEach(x=>{const o=document.createElement('option');o.value=x;o.textContent=x;sel.appendChild(o);});
+    sel.onchange=()=>{t.value=sel.value;};
+    const btn=el('button','btn ok','Guardar episodio');
+    btn.onclick=()=>{ST.epTitle=t.value.trim()||ST.epTitle; ST.epSub=s.value.trim()||ST.epSub; save(); log('Episodio actualizado'); alert('Guardado');};
+    p.appendChild(el('p','muted','Presets')); p.appendChild(sel);
+    p.appendChild(t); p.appendChild(s); p.appendChild(btn);
+    m.appendChild(p);
+  }
+
+  else if(ST.v==='gallery'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Galería local'));
+    p.appendChild(el('p','muted','Capturas de esta app (no se suben solas).'));
+    if(!ST.media.length){p.appendChild(el('p','muted','Vacía. Haz una foto o vídeo en Directo.'));}
+    else{
+      const g=el('div','gallery');
+      ST.media.forEach((x,i)=>{
+        if(x.type==='photo'){
+          const img=document.createElement('img'); img.src=x.data; img.alt='foto '+i;
+          img.onclick=()=>{const w=window.open(''); w.document.write('<img src="'+x.data+'" style="max-width:100%">');};
+          g.appendChild(img);
+        } else {
+          const v=document.createElement('video'); v.src=x.data; v.controls=true; v.playsInline=true;
+          g.appendChild(v);
+        }
+      });
+      p.appendChild(g);
+      const clr=el('button','btn sec','Limpiar galería');
+      clr.onclick=()=>{ST.media=[]; save(); render();};
+      p.appendChild(clr);
+    }
+    m.appendChild(p);
+  }
+
+  else if(ST.v==='notes'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Notas · realidad percibida'));
+    p.appendChild(el('p','muted','Guion, ideas, qué es “verdad” vs marco del show.'));
+    const ta=document.createElement('textarea'); ta.rows=8; ta.value=ST.notes||'';
+    ta.placeholder='Ej. Hoy solo muestro lo que elijo. El contador es ficción…';
+    const btn=el('button','btn ok','Guardar notas');
+    btn.onclick=()=>{ST.notes=ta.value; save();};
+    p.appendChild(ta); p.appendChild(btn);
+    m.appendChild(p);
+  }
+
+  else if(ST.v==='about'){
+    const p=el('div','panel');
+    p.appendChild(el('h2',null,'Estado · MN24 Reality Frame'));
+    [
+      ['Cámara + marco LIVE','ok'],
+      ['Foto / vídeo local','ok'],
+      ['Episodios y notas','ok'],
+      ['Audiencia simulada','sim'],
+      ['Streaming a internet','sim'],
+      ['Vigilancia de terceros','— no']
+    ].forEach(([a,k])=>{
+      const i=el('div','item'); i.appendChild(el('strong',null,a));
+      i.appendChild(el('span','tag '+(k==='ok'?'ok':k==='sim'?'sim':''),k)); p.appendChild(i);
+    });
+    p.appendChild(el('p','muted','Inspirado en la estética de un reality consciente: tú produces, tú decides qué entra al marco.'));
+    p.appendChild(el('div','log')).textContent=ST.log.slice(-12).join('\n')||'Sin eventos';
+    m.appendChild(p);
+  }
+}
+
+$('tabs').onclick=e=>{
+  const b=e.target.closest('[data-v]');
+  if(!b)return;
+  if(ST.v==='live' && b.dataset.v!=='live'){/* keep cam if user navigates? stop to free cam */ stopCam();}
+  ST.v=b.dataset.v; render();
+};
+render();
+window.addEventListener('beforeunload', stopCam);
+</script>
+</body>
+</html>
